@@ -15,3 +15,8 @@ def clean_description(description: str) -> str:
 def classify_effort(exercise: dict[str, Any]) -> str:
     """TODO: definir regras para compound, isolated, cardio e other."""
     raise NotImplementedError("Classificação de esforço ainda por implementar.")
+
+
+def count_equipment(descriptions: list[str]) -> list[dict[str, Any]]:
+    """TODO: devolver equipment/count por frequência decrescente usando re."""
+    raise NotImplementedError("Contagem de equipamento ainda por implementar.")

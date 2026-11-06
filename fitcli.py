@@ -24,6 +24,9 @@ def run_action(action: Callable[[], Any], *, as_json: bool = True) -> None:
     except NotImplementedError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
+    except (RuntimeError, OSError) as exc:
+        typer.echo(f"Erro: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()

@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Bench press",
+    "category": "Chest",
+    "equipment": ["barbell", "bench"],
+    "description": "<p>Press the barbell upwards using chest, shoulders and triceps.</p>",
+    "muscles": ["pectoralis major", "triceps brachii"],
+    "muscles_secondary": ["deltoid"]
+  },
+  {
+    "id": 2,
+    "name": "Dumbbell curl",
+    "category": "Arms",
+    "equipment": ["dumbbell"],
+    "description": "<p>Curl the dumbbell by bending the elbow.</p>",
+    "muscles": ["biceps brachii"],
+    "muscles_secondary": []
+  }
+]

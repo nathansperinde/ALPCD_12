@@ -10,8 +10,11 @@
 CLI em Python para consultar a API pública de exercício físico wger:
 `https://wger.de/api/v2/`. O enunciado está em `docs/ALPCD___TP1__26-1.pdf`.
 
-Este é um esqueleto inicial: os comandos, argumentos, imports e configurações estão
-preparados; as funções das alíneas lançam `NotImplementedError` até serem implementadas.
+As bases de pedidos HTTP/paginação (`api.py`) e de saída JSON/CSV (`output.py`)
+estão implementadas. Os comandos e argumentos estão preparados; as funções das
+alíneas ainda lançam `NotImplementedError` até serem implementadas pelo grupo.
+
+Consulte [as interfaces das bases e a divisão entre três colegas](docs/DIVISAO_TRABALHO.md).
 
 ## Ambiente e instalação
 
@@ -43,15 +46,23 @@ uv run python fitcli.py workout chest,shoulders isolated 3 --csv treino.csv
 ```
 
 O `--help` e a validação dos argumentos já funcionam. A execução das alíneas informa
-que a funcionalidade está por implementar; ainda não são feitos pedidos à API.
+que a funcionalidade está por implementar. As bases podem ser utilizadas diretamente;
+os comandos ainda não fazem pedidos à API enquanto as alíneas estiverem pendentes.
 
 ## Organização
 
 - `fitcli.py`: aplicação Typer e os cinco comandos pedidos.
-- `fitlib/api.py`: sessão Requests, User-Agent, URL base, inglês (`language=2`),
-  timeout e funções reservadas aos pedidos e à paginação.
+- `fitlib/api.py`: sessão Requests, User-Agent, URL base, constante de inglês (`language=2`),
+  timeout, tratamento de erros HTTP/JSON e paginação.
 - `fitlib/exercises.py`: funções das alíneas a), b), c) e d).
 - `fitlib/processing.py`: padrões `re`, limpeza de descrições e classificação do esforço.
 - `fitlib/workout.py`: tipos de esforço aceites e composição do plano de treino.
-- `fitlib/output.py`: funções reservadas às saídas JSON e CSV.
+- `fitlib/output.py`: saída JSON e exportação CSV de planos de treino.
 - `docs/REQUISITOS.md`: requisitos do PDF e ordem sugerida de implementação.
+- `docs/DIVISAO_TRABALHO.md`: contratos, exemplos e divisão de responsabilidades.
+
+## Testes das bases
+
+```bash
+uv run python -m unittest discover -s tests -v
+```
