@@ -1,77 +1,156 @@
-"""Pedidos JSON e paginação da API pública wger."""
-
-from typing import Any
-from urllib.parse import urljoin, urlparse
+import json
+from pathlib import Path
 
 import requests
 
 BASE_URL = "https://wger.de/api/v2/"
-LANGUAGE = 2
-TIMEOUT = 30
-
-session = requests.Session()
-session.headers.update({"User-Agent": "ALPCD-Grupo12/0.1", "Accept": "application/json"})
-
-
-def _url(endpoint: str) -> str:
-    """Aceitar caminhos relativos ou URLs de paginação da mesma API."""
-    url = urljoin(BASE_URL, endpoint)
-    base, parsed = urlparse(BASE_URL), urlparse(url)
-    if (
-        (parsed.scheme, parsed.netloc) != (base.scheme, base.netloc)
-        or not parsed.path.startswith(base.path)
-    ):
-        raise RuntimeError("O endpoint deve pertencer à URL base da API.")
-    return url
+CACHE_FILE = Path(__file__).with_name("cache.json")
+HEADERS = {
+    "User-Agent": "ALPCD-Grupo12/0.1",
+    "Accept": "application/json"
+}
+HTTP_ERRORS = {
+    400: "Bad request.",
+    401: "Authentication required.",
+    403: "Access forbidden.",
+    404: "Resource not found.",
+    408: "Request timeout.",
+    429: "Too many requests."
+}
 
 
-def get_json(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Obter um objeto JSON; lançar RuntimeError em falhas HTTP, rede ou formato.
+def _load_cache() -> dict:
+    cache = {}
+    if CACHE_FILE.exists():
+        try:
+            with CACHE_FILE.open("r", encoding="utf-8") as file:
+                cache = json.load(file)
+        except (OSError, json.JSONDecodeError):
+            cache = {}
 
-    Os parâmetros não são alterados. O idioma deve ser passado explicitamente
-    nos pedidos de exercícios: params={"language": LANGUAGE}.
-    """
-    url = _url(endpoint)
+    if not isinstance(cache, dict):
+        cache = {}
+    return cache
+
+
+def _cache_key(endpoint: str, params: dict | None) -> str:
+    return endpoint + "|" + json.dumps(params or {}, sort_keys=True)
+
+
+def _get_cached_data(cache: dict, key: str) -> dict | None:
+    saved = cache.get(key)
+    if not isinstance(saved, dict):
+        return None
+
+    if (isinstance(saved.get("results"), list)
+            and "next" in saved and "count" in saved):
+        return saved
+    if "id" in saved:
+        return saved
+    return None
+
+
+def _build_url(endpoint: str) -> str:
+    if endpoint.startswith("https://"):
+        if not endpoint.startswith(BASE_URL):
+            raise ValueError("Only wger API URLs are allowed.")
+        return endpoint
+    return BASE_URL + endpoint.lstrip("/")
+
+
+
+def _request_data(url: str, params: dict | None) -> dict:
     try:
-        response = session.get(url, params=params, timeout=TIMEOUT)
+        response = requests.get(
+            url,
+            params=params,
+            headers=HEADERS,
+            timeout=15
+        )
+
         response.raise_for_status()
-    except requests.Timeout as exc:
-        raise RuntimeError("A API excedeu o tempo limite do pedido.") from exc
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else "desconhecido"
-        raise RuntimeError(f"A API devolveu o erro HTTP {status}.") from exc
-    except requests.RequestException as exc:
-        raise RuntimeError("Não foi possível comunicar com a API.") from exc
-    try:
+        
         data = response.json()
-    except ValueError as exc:
-        raise RuntimeError("A API não devolveu JSON válido.") from exc
-    if not isinstance(data, dict):
-        raise RuntimeError("Era esperado um objeto JSON da API.")
+
+        if not isinstance(data, dict):
+            raise RuntimeError("The API did not return a JSON object.")
+
+        return data
+
+    except requests.exceptions.HTTPError as error:
+        status = error.response.status_code
+
+        message = HTTP_ERRORS.get(
+            status,
+            "Server error." if status >= 500 else "HTTP error."
+        )
+
+        raise RuntimeError(f"HTTP {status}: {message}") from error
+
+    except requests.exceptions.Timeout as error:
+        raise RuntimeError("The request timed out.") from error
+
+    except requests.exceptions.ConnectionError as error:
+        raise RuntimeError("Connection error.") from error
+
+    except ValueError as error:
+        raise RuntimeError("Invalid JSON response.") from error
+
+    except requests.exceptions.RequestException as error:
+        raise RuntimeError("Request failed.") from error
+
+
+def _save_cache(cache: dict, key: str, data: dict) -> None:
+    cache[key] = data
+
+    try:
+        with CACHE_FILE.open("w", encoding="utf-8") as file:
+            json.dump(cache, file, indent=2, ensure_ascii=False)
+
+    except OSError as error:
+        raise RuntimeError("Failed to save cache.") from error
+
+
+def get_data(endpoint: str, params: dict | None = None, refresh: bool = False) -> dict:
+    cache = _load_cache()
+    key = _cache_key(endpoint, params)
+
+    if not refresh:
+        saved = _get_cached_data(cache, key)
+        if saved is not None:
+            return saved
+
+    data = _request_data(_build_url(endpoint), params)
+    _save_cache(cache, key, data)
     return data
 
 
-def get_all(endpoint: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Reunir results de todas as páginas, seguindo next até None.
 
-    Os filtros são enviados apenas na primeira página: as URLs next já os
-    contêm. A ordem e os campos devolvidos pela API são preservados.
-    """
-    results: list[dict[str, Any]] = []
-    url: str | None = _url(endpoint)
-    visited: set[str] = set()
-    while url is not None:
+def get_list(endpoint: str, params: dict | None = None, max_items: int | None = None, refresh: bool = False) -> list[dict]:
+    if max_items is not None and max_items <= 0:
+        raise ValueError("max_items must be positive.")
+
+    items = []
+    url = endpoint
+    visited = []
+
+    while url:
         if url in visited:
-            raise RuntimeError("A API devolveu um ciclo na paginação.")
-        visited.add(url)
-        page = get_json(url, params=params)
-        items = page.get("results")
-        if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
-            raise RuntimeError("A página da API deve conter uma lista results de objetos.")
-        results.extend(items)
-        next_page = page.get("next")
-        if next_page is not None and (not isinstance(next_page, str) or not next_page):
-            raise RuntimeError("O campo next da API deve ser uma URL ou null.")
-        url = _url(urljoin(url, next_page)) if next_page is not None else None
+            raise RuntimeError("Pagination loop detected.")
+
+        visited.append(url)
+
+        page = get_data(url, params, refresh)
+
+        if not isinstance(page, dict) or not isinstance(page.get("results"), list):
+            raise RuntimeError("The API did not return a valid results list.")
+
+        items.extend(page["results"])
+
+        if max_items is not None and len(items) >= max_items:
+            return items[:max_items]
+
+        url = page.get("next")
         params = None
-    return results
+
+    return items
