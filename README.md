@@ -10,9 +10,13 @@
 CLI em Python para consultar a API pública de exercício físico wger:
 `https://wger.de/api/v2/`. O enunciado está em `docs/ALPCD___TP1__26-1.pdf`.
 
-As bases de pedidos HTTP/paginação (`api.py`) e de saída JSON/CSV (`output.py`)
-estão implementadas. Os comandos e argumentos estão preparados; as funções das
-alíneas ainda lançam `NotImplementedError` até serem implementadas pelo grupo.
+As bases HTTP/cache/paginação (`fitlib/api.py`), JSON/CSV (`fitlib/output.py`)
+e as alíneas A/B (`top` e `search`) estão implementadas. `type`, `equipment` e
+`workout` continuam por implementar.
+
+A integração preserva a API de Nathan e aproveita a lógica de A/B de Rafael.
+`AeB/` permanece como referência histórica. Consulte as decisões e os testes
+reais em [docs/INTEGRACAO.md](docs/INTEGRACAO.md).
 
 Consulte [as interfaces das bases e a divisão entre três colegas](docs/DIVISAO_TRABALHO.md).
 
@@ -39,22 +43,26 @@ Se preferir ativar o ambiente, execute `source .venv/bin/activate` e depois
 ```bash
 uv run python fitcli.py top 10
 uv run python fitcli.py search biceps 5
+uv run python fitcli.py top 5 --refresh
+uv run python fitcli.py search chest 5 --refresh
 uv run python fitcli.py type 192
 uv run python fitcli.py equipment chest
 uv run python fitcli.py workout biceps,back compound 5
 uv run python fitcli.py workout chest,shoulders isolated 3 --csv treino.csv
 ```
 
-O `--help` e a validação dos argumentos já funcionam. A execução das alíneas informa
-que a funcionalidade está por implementar. As bases podem ser utilizadas diretamente;
-os comandos ainda não fazem pedidos à API enquanto as alíneas estiverem pendentes.
+`top` e `search` consultam a wger e apresentam JSON com id, nome, categoria,
+equipamentos, músculos, músculos secundários e descrição inglesa. A cache não
+expira automaticamente; use `--refresh` para obter dados atualizados.
+Os demais comandos apresentam a mensagem de funcionalidade por implementar.
 
 ## Organização
 
 - `fitcli.py`: aplicação Typer e os cinco comandos pedidos.
-- `fitlib/api.py`: sessão Requests, User-Agent, URL base, constante de inglês (`language=2`),
-  timeout, tratamento de erros HTTP/JSON e paginação.
-- `fitlib/exercises.py`: funções das alíneas a), b), c) e d).
+- `fitlib/api.py`: requests.get, headers, timeout de 15 segundos, erros, cache e
+  paginação com transformação opcional.
+- `fitlib/exercises.py`: inglês (`LANGUAGE=2`), normalização, top/search e funções
+  reservadas a c)/d).
 - `fitlib/processing.py`: padrões `re`, limpeza de descrições e classificação do esforço.
 - `fitlib/workout.py`: tipos de esforço aceites e composição do plano de treino.
 - `fitlib/output.py`: saída JSON e exportação CSV de planos de treino.

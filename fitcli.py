@@ -1,4 +1,4 @@
-"""CLI do TP1: comandos preparados para implementação pelo grupo."""
+"""CLI do TP1: A/B integradas; as restantes alíneas mantêm-se por implementar."""
 
 from collections.abc import Callable
 from pathlib import Path
@@ -24,21 +24,32 @@ def run_action(action: Callable[[], Any], *, as_json: bool = True) -> None:
     except NotImplementedError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
-    except (RuntimeError, OSError) as exc:
+    except (RuntimeError, OSError, ValueError) as exc:
         typer.echo(f"Erro: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
 
 @app.command()
-def top(n: PositiveInt) -> None:
+def top(
+    n: PositiveInt,
+    refresh: Annotated[bool, typer.Option("--refresh", help="Ignorar a cache.")] = False,
+) -> None:
     """a) Mostrar os N exercícios mais recentes."""
-    run_action(lambda: exercises.top_exercises(n))
+    # A de Rafael: regras em exercises; JSON pelo output original via run_action.
+    run_action(lambda: exercises.top_exercises(n, refresh=refresh))
 
 
 @app.command()
-def search(target: Target, n: PositiveInt) -> None:
+def search(
+    target: Target,
+    n: PositiveInt,
+    refresh: Annotated[bool, typer.Option("--refresh", help="Ignorar a cache.")] = False,
+) -> None:
     """b) Pesquisar exercícios por músculo e/ou categoria."""
-    run_action(lambda: exercises.search_exercises(target, n))
+    if not target.strip():
+        raise typer.BadParameter("Indique um músculo ou uma categoria.", param_hint="target")
+    # B de Rafael: resolver filtros e deduplicar no domínio, sem uma CLI paralela.
+    run_action(lambda: exercises.search_exercises(target, n, refresh=refresh))
 
 
 @app.command(name="type")

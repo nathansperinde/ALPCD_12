@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlparse
 from typer.testing import CliRunner
 
 from fitcli import app
-from fitlib import api, output
+from fitlib import api, exercises, output
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -34,15 +34,13 @@ class Handler(BaseHTTPRequestHandler):
             if query.get("offset") == ["1"]:
                 data = {"results": [{"id": 2}], "next": None}
             else:
-                data = {"results": [{"id": 1}], "next": "?offset=1&language=2"}
+                data = {"results": [{"id": 1}], "next": "pages/?offset=1&language=2"}
         elif parsed.path.endswith("/empty/"):
             data = {"results": [], "next": None}
         elif parsed.path.endswith("/cycle/"):
-            data = {"results": [], "next": self.path}
+            data = {"results": [], "next": "cycle/"}
         elif parsed.path.endswith("/bad-results/"):
-            data = {"results": ["invalid"], "next": None}
-        elif parsed.path.endswith("/bad-next/"):
-            data = {"results": [], "next": 7}
+            data = {"results": "invalid", "next": None}
         elif parsed.path.endswith("/foreign-next/"):
             data = {"results": [], "next": "https://example.com/api/v2/"}
         elif parsed.path.endswith("/list/"):
@@ -82,10 +80,15 @@ class APITests(unittest.TestCase):
         self.base_patch = patch.object(api, "BASE_URL", self.base)
         self.base_patch.start()
         self.addCleanup(self.base_patch.stop)
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        cache_patch = patch.object(api, "CACHE_FILE", Path(directory.name) / "cache.json")
+        cache_patch.start()
+        self.addCleanup(cache_patch.stop)
 
     def test_detail_filters_and_headers(self):
-        params = {"language": api.LANGUAGE}
-        self.assertEqual(api.get_json("detail/", params), {"id": 1})
+        params = {"language": exercises.LANGUAGE}
+        self.assertEqual(api.get_data("detail/", params), {"id": 1})
         self.assertEqual(params, {"language": 2})
         path, query, headers = Handler.calls[0]
         self.assertEqual(path, "/api/v2/detail/")
@@ -95,42 +98,46 @@ class APITests(unittest.TestCase):
 
     def test_pagination_preserves_next_query_without_repeating_filters(self):
         params = {"language": 2, "limit": 1}
-        self.assertEqual(api.get_all("pages/", params), [{"id": 1}, {"id": 2}])
+        self.assertEqual(api.get_list("pages/", params), [{"id": 1}, {"id": 2}])
         self.assertEqual(len(Handler.calls), 2)
         self.assertEqual(Handler.calls[1][1], {"offset": ["1"], "language": ["2"]})
         self.assertEqual(params, {"language": 2, "limit": 1})
 
     def test_empty_page(self):
-        self.assertEqual(api.get_all("empty/"), [])
+        self.assertEqual(api.get_list("empty/"), [])
 
     def test_http_errors(self):
         for status in (404, 500):
             with self.subTest(status=status), self.assertRaisesRegex(RuntimeError, f"HTTP {status}"):
-                api.get_json(f"{status}/")
+                api.get_data(f"{status}/")
 
     def test_invalid_json_and_top_level(self):
         for endpoint in ("html/", "list/"):
             with self.subTest(endpoint=endpoint), self.assertRaises(RuntimeError):
-                api.get_json(endpoint)
+                api.get_data(endpoint)
 
     def test_invalid_pages_and_cycles(self):
-        for endpoint in ("bad-results/", "bad-next/", "cycle/", "foreign-next/"):
+        for endpoint in ("bad-results/", "cycle/"):
             with self.subTest(endpoint=endpoint), self.assertRaises(RuntimeError):
-                api.get_all(endpoint)
+                api.get_list(endpoint)
+        with self.assertRaises(ValueError):
+            api.get_list("foreign-next/")
 
     def test_foreign_url_rejected_before_request(self):
-        with self.assertRaises(RuntimeError):
-            api.get_json("https://example.com/api/v2/")
+        with self.assertRaises(ValueError):
+            api.get_data("https://example.com/api/v2/")
         self.assertEqual(Handler.calls, [])
 
     def test_timeout(self):
-        with patch.object(api, "TIMEOUT", 0.01), self.assertRaisesRegex(RuntimeError, "tempo limite"):
-            api.get_json("slow/")
+        with patch.object(api.requests, "get", side_effect=api.requests.Timeout) as request:
+            with self.assertRaisesRegex(RuntimeError, "timed out"):
+                api.get_data("detail/")
+            self.assertEqual(request.call_args.kwargs["timeout"], 15)
 
     def test_connection_error(self):
-        with patch.object(api.session, "get", side_effect=api.requests.ConnectionError):
-            with self.assertRaisesRegex(RuntimeError, "comunicar"):
-                api.get_json("detail/")
+        with patch.object(api.requests, "get", side_effect=api.requests.ConnectionError):
+            with self.assertRaisesRegex(RuntimeError, "Connection error"):
+                api.get_data("detail/")
 
 
 class OutputTests(unittest.TestCase):

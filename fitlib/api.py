@@ -1,4 +1,7 @@
+"""Base de Nathan (643e795), com a extensão transform de Rafael para A/B."""
+
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import requests
@@ -18,7 +21,13 @@ HTTP_ERRORS = {
     429: "Too many requests."
 }
 
+# TODO(cache — propostas de Rafael analisadas e adiadas): usar a URL resolvida
+# na chave, simplificar _load_cache, rever falhas de gravação e a validação dos
+# dados guardados. Preservamos a política de Nathan nesta integração de A/B.
+# Discutir separadamente TTL, limpeza de entradas expiradas e políticas configuráveis.
 
+
+#Made by: Nathan
 def _load_cache() -> dict:
     cache = {}
     if CACHE_FILE.exists():
@@ -33,10 +42,12 @@ def _load_cache() -> dict:
     return cache
 
 
+#Made by: Nathan
 def _cache_key(endpoint: str, params: dict | None) -> str:
     return endpoint + "|" + json.dumps(params or {}, sort_keys=True)
 
 
+#Made by: Nathan
 def _get_cached_data(cache: dict, key: str) -> dict | None:
     saved = cache.get(key)
     if not isinstance(saved, dict):
@@ -50,6 +61,7 @@ def _get_cached_data(cache: dict, key: str) -> dict | None:
     return None
 
 
+#Made by: Nathan
 def _build_url(endpoint: str) -> str:
     if endpoint.startswith("https://"):
         if not endpoint.startswith(BASE_URL):
@@ -59,6 +71,7 @@ def _build_url(endpoint: str) -> str:
 
 
 
+#Made by: Nathan
 def _request_data(url: str, params: dict | None) -> dict:
     try:
         response = requests.get(
@@ -100,6 +113,7 @@ def _request_data(url: str, params: dict | None) -> dict:
         raise RuntimeError("Request failed.") from error
 
 
+#Made by: Nathan
 def _save_cache(cache: dict, key: str, data: dict) -> None:
     cache[key] = data
 
@@ -111,6 +125,7 @@ def _save_cache(cache: dict, key: str, data: dict) -> None:
         raise RuntimeError("Failed to save cache.") from error
 
 
+#Made by: Nathan
 def get_data(endpoint: str, params: dict | None = None, refresh: bool = False) -> dict:
     cache = _load_cache()
     key = _cache_key(endpoint, params)
@@ -126,7 +141,15 @@ def get_data(endpoint: str, params: dict | None = None, refresh: bool = False) -
 
 
 
-def get_list(endpoint: str, params: dict | None = None, max_items: int | None = None, refresh: bool = False) -> list[dict]:
+#Made by: Nathan
+def get_list(
+    endpoint: str,
+    params: dict | None = None,
+    max_items: int | None = None,
+    refresh: bool = False,
+    transform: Callable[[dict], dict | None] | None = None,
+) -> list[dict]:
+    """Paginar; quando indicado, contar apenas os itens aceites por transform."""
     if max_items is not None and max_items <= 0:
         raise ValueError("max_items must be positive.")
 
@@ -145,10 +168,17 @@ def get_list(endpoint: str, params: dict | None = None, max_items: int | None = 
         if not isinstance(page, dict) or not isinstance(page.get("results"), list):
             raise RuntimeError("The API did not return a valid results list.")
 
-        items.extend(page["results"])
+        # Extensão de Rafael para A/B: ignorar itens sem tradução inglesa ou
+        # repetidos sem os contar para o limite. Sem transform, manter os itens.
+        for item in page["results"]:
+            if transform is not None:
+                item = transform(item)
+                if item is None:
+                    continue
+            items.append(item)
 
-        if max_items is not None and len(items) >= max_items:
-            return items[:max_items]
+            if max_items is not None and len(items) >= max_items:
+                return items[:max_items]
 
         url = page.get("next")
         params = None
