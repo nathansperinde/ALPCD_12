@@ -109,17 +109,17 @@ def search_exercises(target: str, limit: int, refresh: bool = False) -> list[dic
 COMPOUND_PATTERN = (
     r"\b(?:"
     r"press|pull|squat|row|ups|up|bench|incline|"
-    r"push|front|squats|plank|calf|biceps|deadlift|"
-    r"kettlebell|down|sit|hold|trx|wide|dips|"
-    r"wall|knee|lunges|floor|split|bridge|clean|"
-    r"thrust|rowing|narrow|smith"
+    r"push|front|squats|plank|biceps|calf|deadlift|"
+    r"kettlebell|down|sit|hold|trx|wide|dips|split|"
+    r"wall|knee|lunges|floor|thrust|rowing|smith|"
+    r"bridge|clean|narrow"
     r")\b"
 )
 
 ISOLATED_PATTERN = (
     r"\b(?:"
     r"curls|extension|triceps|lateral|fly|dumbbells|"
-    r"overhead|tricep|pushdown|preacher|external"
+    r"overhead|tricep|preacher|pushdown|kickback"
     r")\b"
 )
 
