@@ -32,18 +32,38 @@ O limiar de 2/3 é utilizado **apenas para selecionar palavras durante a anális
 
 ```mermaid
 flowchart TD
-    A([Receber exercício]) --> C{Categoria Cardio?}
-    C -->|Sim| D([cardio])
-    C -->|Não| E{Tem nome e músculos registados?}
-    E -->|Não| F([other])
-    E -->|Sim| G{Quantos músculos?}
-    G -->|1| H{Nome corresponde ao ISOLATED_PATTERN?}
-    G -->|2 ou mais| I{Nome corresponde ao COMPOUND_PATTERN?}
-    H -->|Sim| J([isolated])
-    H -->|Não| F
-    I -->|Sim| K([compound])
-    I -->|Não| F
+    A([Receber ID ou pesquisa]) --> B{Utiliza --find?}
+    B -->|Não| C{ID positivo?}
+    C -->|Não| D([Erro])
+    C -->|Sim| E[Consultar exercício com api.get_data]
+    B -->|Sim| F[Pesquisar exercícios com find_exercises]
+    E --> G[Aplicar classify_effort]
+    F --> H[Classificar cada exercício encontrado]
+    H --> G
+    G --> I{Categoria Cardio?}
+    I -->|Sim| J[cardio]
+    I -->|Não| K{Tem nome e músculos registados?}
+    K -->|Não| L[other]
+    K -->|Sim| M{Quantos músculos?}
+    M -->|1| N{Nome corresponde ao ISOLATED_PATTERN?}
+    M -->|2 ou mais| O{Nome corresponde ao COMPOUND_PATTERN?}
+    N -->|Sim| P[isolated]
+    N -->|Não| L
+    O -->|Sim| Q[compound]
+    O -->|Não| L
+    J --> R{Utiliza --find?}
+    L --> R
+    P --> R
+    Q --> R
+    R -->|Não| S([Devolver classificação])
+    R -->|Sim| T([Devolver lista de IDs, nomes e tipos])
 ```
+
+O algoritmo possui duas formas de obter os exercícios: diretamente através de um ID ou através da pesquisa textual implementada no Extra 1.
+
+Em ambos os casos, é utilizada a mesma função `classify_effort()`, responsável por verificar a categoria, a quantidade de músculos e a correspondência do nome com os padrões regex.
+
+Na pesquisa com `--find`, a classificação é aplicada a cada exercício encontrado. A opção `--deep` permite utilizar também a descrição durante a pesquisa, sem alterar as regras de classificação.
 
 **Regras:**
 

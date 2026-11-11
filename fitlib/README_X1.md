@@ -33,26 +33,46 @@ A pesquisa utiliza `all()` para garantir que todas as palavras estejam presentes
 
 ```mermaid
 flowchart TD
-    A([Receber query, limit e opções]) --> B{Pesquisa deep?}
-    B -->|Não| C[Pesquisar nome através da API]
-    B -->|Sim| D[Separar palavras e criar regex]
-    C --> E[Obter exercícios com api.get_list]
-    D --> E
-    E --> F[Normalizar com _format]
-    F --> G{Possui tradução inglesa?}
-    G -->|Não| H[Ignorar exercício]
-    G -->|Sim| I{Pesquisa deep?}
-    I -->|Sim| J[Limpar descrição e verificar todas as palavras]
-    J --> K{Todas encontradas?}
-    K -->|Não| H
-    K -->|Sim| L[Preparar resultado]
-    I -->|Não| L
-    L --> M[Devolver ID e nome, com descrição opcional]
+    A([Receber query, limit e opções]) --> B{Pesquisa válida e limite positivo?}
+    B -->|Não| C([Erro])
+    B -->|Sim| D{Pesquisa deep?}
+    D -->|Não| E[Definir filtro name__search]
+    D -->|Sim| F[Criar regex para cada palavra]
+    E --> G[Consultar exercícios com api.get_list]
+    F --> G
+    G --> H[Normalizar com _format]
+    H --> I{Possui tradução inglesa?}
+    I -->|Não| J[Ignorar exercício]
+    I -->|Sim| K{Pesquisa deep?}
+    K -->|Sim| L[Limpar descrição e verificar todas as palavras]
+    L --> M{Todas encontradas?}
+    M -->|Não| J
+    M -->|Sim| N[Preparar resultado]
+    K -->|Não| N
+    N --> O{Parâmetro raw?}
+    O -->|Sim| P[Manter dados originais]
+    O -->|Não| Q{Incluir descrição?}
+    Q -->|Sim| R[Adicionar descrição limpa]
+    Q -->|Não| S[Manter ID e nome]
+    P --> T[Adicionar exercício aos resultados]
+    R --> T
+    S --> T
+    J --> U{Limite atingido ou fim da paginação?}
+    T --> U
+    U -->|Não| G
+    U -->|Sim| V([Devolver lista de exercícios])
 ```
 
-A função `filter_exercise()` verifica cada exercício recebido através do parâmetro `transform` de `api.get_list()`. Os exercícios rejeitados devolvem `None`, enquanto os aceites são adicionados à lista de resultados.
+O algoritmo começa por validar a pesquisa e o limite solicitado. Depois, seleciona o método de pesquisa:
 
-A paginação termina quando é atingido o limite solicitado ou quando se esgotam os exercícios disponíveis.
+- **Normal** — utiliza o filtro `name__search` da API para pesquisar pelo nome.
+- **Aprofundado (`--deep`)** — utiliza regex para verificar se todas as palavras estão presentes no nome e/ou na descrição, independentemente da ordem.
+
+A função `filter_exercise()` é aplicada aos exercícios recebidos através do parâmetro `transform` de `api.get_list()`. Os exercícios sem tradução inglesa ou que não satisfazem as condições da pesquisa são ignorados.
+
+A opção `--description` permite incluir a descrição limpa nos resultados, enquanto o parâmetro interno `raw=True` devolve os dados originais para reutilização noutras funcionalidades.
+
+A recolha termina quando é atingido o limite de exercícios aceites ou quando se esgotam as páginas disponíveis.
 
 ## 4. Reutilização noutras funcionalidades
 
