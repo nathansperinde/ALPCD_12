@@ -103,7 +103,7 @@ def search_exercises(target: str, limit: int, refresh: bool = False) -> list[dic
     return results
 
 
-# Algoritmo para o tipo de exercício - Nathan
+# Algoritmo para o tipo de exercício e funções extras - Nathan
 
 # EXTRA: função para pesquisar pelo exercício através do nome ou do nome e descrição
 def word_pattern(word: str) -> re.Pattern:
@@ -194,7 +194,7 @@ def find_exercises(query: str, limit: int = 20, deep: bool = False, show_descrip
         transform=filter_exercise
     )
 
-
+# Função para classificar o tipo do exercício
 COMPOUND_PATTERN = (
     r"\b(?:"
     r"press|pull|squat|row|ups|up|bench|incline|"
@@ -247,6 +247,63 @@ def classify_effort(exercise: dict) -> str:
         return "compound"
 
     return "other"
+
+# EXTRA: função para comparar exercícios
+def _compare_attribute(items: list[dict], field: str) -> dict:
+    occurrences = {}
+
+    for item in items:
+        values = item[field]
+
+        if not isinstance(values, list):
+            values = [values]
+
+        for value in set(values) - {None, ""}:
+            occurrences.setdefault(value, []).append(item["id"])
+
+    common = []
+    shared = {}
+    exclusive = {}
+
+    for value, found in sorted(occurrences.items()):
+        if len(found) == len(items):
+            common.append(value)
+
+        elif len(found) > 1:
+            shared[value] = found
+
+        else:
+            exclusive[value] = found[0]
+
+    return {"comuns_a_todos": common, "partilhados": shared, "exclusivos": exclusive}
+
+
+def compare_exercises(ids: list[int]) -> dict:
+    if len(ids) < 2:
+        raise ValueError("Indique pelo menos dois exercícios.")
+
+    if len(ids) != len(set(ids)) or min(ids) <= 0:
+        raise ValueError("Os IDs devem ser positivos e diferentes.")
+
+    items = []
+
+    for exercise_id in ids:
+        exercise = api.get_data(f"exerciseinfo/{exercise_id}/")
+        data = _format(exercise)
+
+        if data is None:
+            raise ValueError(f"Exercício {exercise_id} sem tradução inglesa.")
+
+        data["type"] = classify_effort(exercise)
+
+        items.append(data)
+
+    comparison = {}
+
+    for field in ("category", "type", "muscles", "muscles_secondary", "equipment"):
+        comparison[field] = _compare_attribute(items, field)
+
+    return {"total_exercicios": len(items), "comparacao": comparison}
 
 
 def exercise_type(exercise_id: int) -> str:

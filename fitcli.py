@@ -90,6 +90,17 @@ def find(
 
 
 @app.command()
+def compare(
+    ids: Annotated[
+        list[int],
+        typer.Argument(help="IDs dos exercícios a comparar.")
+    ]
+) -> None:
+    """Extra 2: Comparar dois ou mais exercícios."""
+    run_action(lambda: exercises.compare_exercises(ids))
+
+
+@app.command()
 def workout(
     targets: Annotated[str, typer.Argument(help="Alvos separados por vírgula.")],
     effort: Effort,
