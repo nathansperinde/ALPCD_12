@@ -14,9 +14,11 @@ PositiveInt = Annotated[int, typer.Argument(min=1)]
 Target = Annotated[str, typer.Argument(help="Músculo e/ou categoria.")]
 
 
-def run_action(action: Callable[[], Any], *, as_json: bool = True) -> None:
+def run_action(action: Callable[[], Any], *, as_json: bool = True, show_count: bool = False) -> None:
     try:
         result = action()
+        if show_count and isinstance(result, list):
+            typer.echo(f"Total de exercícios exibidos: {len(result)}\n", err=True)
         if as_json:
             output.print_json(result)
         elif result is not None:
@@ -61,7 +63,7 @@ def exercise_type(
 ) -> None:
     """c) Inferir o tipo de esforço de um exercício."""
     if find:
-        run_action(lambda: exercises.search_exercise_types(exercise_id, limit, deep))
+        run_action(lambda: exercises.search_exercise_types(exercise_id, limit, deep), show_count=True)
     else:
         if not exercise_id.isdecimal() or int(exercise_id) <= 0:
             raise typer.BadParameter("Indique um ID positivo ou utilize --find")
@@ -84,7 +86,7 @@ def find(
     ] = False
 ) -> None:
     """Extra 1: Pesquisar exercício por palavra(s) no nome e/ou na descrição"""
-    run_action(lambda: exercises.find_exercises(query, limit, deep, show_description))
+    run_action(lambda: exercises.find_exercises(query, limit, deep, show_description), show_count=True)
 
 
 @app.command()
