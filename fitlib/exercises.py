@@ -140,7 +140,7 @@ def word_pattern(word: str) -> re.Pattern:
     return re.compile(rf"\b{pattern}\b", re.IGNORECASE)
 
 
-def find_exercises(query: str, limit: int = 20, deep: bool = False, show_description: bool = False) -> list[dict]:
+def find_exercises(query: str, limit: int = 20, deep: bool = False, show_description: bool = False, raw: bool = False) -> list[dict]:
 
     if limit <= 0:
         raise ValueError("O limite deve ser positivo.")
@@ -176,6 +176,9 @@ def find_exercises(query: str, limit: int = 20, deep: bool = False, show_descrip
 
             if not all(pattern.search(text) for pattern in patterns):
                 return None
+
+        if raw:
+            return exercise
 
         result = {"id": data["id"], "name": data["name"]}
 
@@ -250,6 +253,18 @@ def exercise_type(exercise_id: int) -> str:
     """c): inferir o esforço pela descrição, categoria e músculos."""
     exercise = api.get_data(f"exerciseinfo/{exercise_id}/")
     return classify_effort(exercise)
+
+
+def search_exercise_types(query: str, limit: int = 20, deep: bool = False) -> list[dict]:
+    found = find_exercises(query, limit, deep, raw=True)
+    return [
+        {
+            "id": exercise["id"],
+            "name": _name_in_english(exercise),
+            "type": classify_effort(exercise)
+        }
+        for exercise in found
+    ]
 
 
 def equipment_frequency(category: str) -> list[dict[str, Any]]:

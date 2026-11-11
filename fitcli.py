@@ -53,9 +53,19 @@ def search(
 
 
 @app.command(name="type")
-def exercise_type(exercise_id: PositiveInt) -> None:
+def exercise_type(
+    exercise_id: Annotated[str, typer.Argument(help="ID ou palavras com --find.")],
+    find: Annotated[bool, typer.Option("--find")] = False,
+    deep: Annotated[bool, typer.Option("--deep")] = False,
+    limit: Annotated[int, typer.Option("--limit", min=1)] = 20
+) -> None:
     """c) Inferir o tipo de esforço de um exercício."""
-    run_action(lambda: exercises.exercise_type(exercise_id), as_json=False)
+    if find:
+        run_action(lambda: exercises.search_exercise_types(exercise_id, limit, deep))
+    else:
+        if not exercise_id.isdecimal() or int(exercise_id) <= 0:
+            raise typer.BadParameter("Indique um ID positivo ou utilize --find")
+        run_action(lambda: exercises.exercise_type(int(exercise_id)), as_json=False)
 
 
 @app.command()
