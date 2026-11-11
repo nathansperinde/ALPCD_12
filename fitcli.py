@@ -66,12 +66,15 @@ def equipment(category: Target) -> None:
 
 @app.command()
 def find(
-    query: Annotated[str, typer.Argument(help="Nome ou palavras a pesquisar.")],
+    query: Annotated[str, typer.Argument(help="Texto a pesquisar.")],
     limit: Annotated[int, typer.Option("--limit", min=1)] = 20,
-    deep: Annotated[bool, typer.Option("--deep")] = False
+    deep: Annotated[bool, typer.Option("--deep")] = False,
+    show_description: Annotated[
+        bool, typer.Option("--description")
+    ] = False
 ) -> None:
     """Extra 1: Pesquisar exercício por palavra(s) no nome e/ou na descrição"""
-    run_action(lambda: exercises.find_exercises(query, limit, deep))
+    run_action(lambda: exercises.find_exercises(query, limit, deep, show_description))
 
 
 @app.command()
