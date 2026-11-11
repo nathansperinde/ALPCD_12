@@ -275,7 +275,14 @@ def _compare_attribute(items: list[dict], field: str) -> dict:
         else:
             exclusive[value] = found[0]
 
-    return {"comuns_a_todos": common, "partilhados": shared, "exclusivos": exclusive}
+    result = {"comuns_a_todos": common}
+
+    if len(items) > 2:
+        result["partilhados"] = shared
+
+    result["exclusivos"] = exclusive
+
+    return result
 
 
 def compare_exercises(ids: list[int]) -> dict:
