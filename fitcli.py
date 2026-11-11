@@ -65,6 +65,16 @@ def equipment(category: Target) -> None:
 
 
 @app.command()
+def find(
+    query: Annotated[str, typer.Argument(help="Nome ou palavras a pesquisar.")],
+    limit: Annotated[int, typer.Option("--limit", min=1)] = 20,
+    deep: Annotated[bool, typer.Option("--deep")] = False
+) -> None:
+    """Extra 1: Pesquisar exercício por palavra(s) no nome e/ou na descrição"""
+    run_action(lambda: exercises.find_exercises(query, limit, deep))
+
+
+@app.command()
 def workout(
     targets: Annotated[str, typer.Argument(help="Alvos separados por vírgula.")],
     effort: Effort,

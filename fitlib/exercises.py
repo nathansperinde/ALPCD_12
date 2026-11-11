@@ -105,6 +105,48 @@ def search_exercises(target: str, limit: int, refresh: bool = False) -> list[dic
 
 # Algoritmo para o tipo de exercício - Nathan
 
+# EXTRA: função para pesquisar pelo exercício através do nome ou do nome e descrição
+def find_exercises(query: str, limit: int = 20, deep: bool = False) -> list[dict]:
+    if limit <= 0:
+        raise ValueError("O limite deve ser positivo.")
+
+    words = re.findall(r"[^\W_]+", query)
+
+    if not words:
+        raise ValueError("Pesquisa vazia.")
+
+    params = {"language__code": "en", "limit": 100}
+
+    if not deep:
+        params["name__search"] = query.strip()
+
+    patterns = [
+        re.compile(rf"\b{re.escape(word)}\b", re.IGNORECASE)
+        for word in set(words)
+    ] if deep else []
+
+    def filter_exercise(exercise: dict) -> dict | None:
+        data = _format(exercise)
+
+        if data is None:
+            return None
+
+        description = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", data["description"])).strip()
+
+        if deep:
+            text = data["name"] + " " + description
+            if not all(pattern.search(text) for pattern in patterns):
+                return None
+
+        return {"id": data["id"], "name": data["name"], "description": description}
+
+    return api.get_list(
+        "exerciseinfo/",
+        params=params,
+        max_items=limit,
+        transform=filter_exercise
+    )
+
 
 COMPOUND_PATTERN = (
     r"\b(?:"
