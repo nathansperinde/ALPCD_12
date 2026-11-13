@@ -1,0 +1,233 @@
+# Funções extras: dificuldade de um exercício e valores nutricionais
+
+Este texto segue o formato do notebook dos candidatos a regex: passos numerados, código, resultados e os critérios usados. Os resultados marcados como *Out* foram obtidos ao correr as funções. Os que dependem da API só aparecem quando foram obtidos num teste real.
+
+---
+
+# Extra 1: `difficulty` (estimar o nível de um exercício)
+
+**Objetivo:** dado o ID de um exercício, estimar se é de nível *iniciante*, *intermédio* ou *avançado*, e mostrar as razões da classificação.
+
+A ideia é a mesma do notebook dos músculos: partir de pistas que existem nos dados (número de músculos, palavras do nome, equipamento) e transformá-las num critério simples e explicável.
+
+## 1. Obter os dados do exercício
+
+```python
+exercise = get_json(f"exerciseinfo/{exercise_id}/")
+
+name = _exercise_name(exercise)                       # nome em inglês (language == 2)
+n_muscles = len(exercise.get("muscles") or []) + len(exercise.get("muscles_secondary") or [])
+equipment = [e.get("name") for e in exercise.get("equipment") or []]
+```
+
+Tal como no notebook, o número de músculos soma primários e secundários. Se o exercício não tiver nome inglês, usa-se o primeiro nome disponível, para a função não falhar.
+
+## 2. Definir as palavras do nome a analisar (regex)
+
+```python
+ADVANCED_PATTERN = re.compile(
+    r"\b(?:single[- ]?(?:leg|arm)|one[- ]?(?:leg|arm)|pistol|deficit|weighted|"
+    r"snatch|clean|jerk|muscle[- ]?up|handstand|archer|plyo\w*|explosive)\b",
+    re.IGNORECASE,
+)
+BEGINNER_PATTERN = re.compile(
+    r"\b(?:assisted|machine|seated|supported|wall|kneeling|stretch\w*)\b",
+    re.IGNORECASE,
+)
+```
+
+Duas notas sobre as expressões:
+- `\b` obriga a corresponder a **palavras inteiras**. Assim, `Cleaner` não é confundido com `clean`.
+- `single[- ]?(?:leg|arm)` apanha `single leg`, `single-leg` e `singleleg`.
+
+```python
+extras._unique_matches(ADVANCED_PATTERN, "Single-Leg Deficit Deadlift")
+extras._unique_matches(ADVANCED_PATTERN, "Cleaner Row")
+extras._unique_matches(BEGINNER_PATTERN, "Seated Machine Row")
+```
+```
+Out: ['single-leg', 'deficit']
+Out: []
+Out: ['seated', 'machine']
+```
+
+Estas palavras são, de certa forma, o contrário da `ignorar` do notebook: aquelas descartavam palavras pouco informativas para a classificação muscular, e estas guardam as que dizem algo sobre a dificuldade.
+
+## 3. Calcular a pontuação
+
+Cada pista soma ou subtrai pontos:
+
+| Pista | Pontos |
+|---|---|
+| 2 ou 3 músculos envolvidos | +1 |
+| 4 ou mais músculos envolvidos | +2 |
+| Palavras avançadas no nome (conta uma só vez) | +2 |
+| Palavras de apoio no nome (conta uma só vez) | −1 |
+| Equipamento `Barbell` ou `Kettlebell` | +1 |
+
+```python
+casos = [
+    ("Machine Chest Press", 3, []),
+    ("Barbell Back Squat", 4, ["Barbell"]),
+    ("Single-Leg Deficit Deadlift", 4, ["Barbell"]),
+    ("Plank", 0, []),
+    ("Cleaner Row", 2, []),
+    ("Weighted Pull-ups", 4, []),
+    ("Seated Cable Row", 3, []),
+]
+for nome, musculos, equipamento in casos:
+    score, razoes = extras.score_difficulty(nome, musculos, equipamento)
+    print(nome, "->", score, extras.level_from_score(score), razoes)
+```
+
+Os músculos e o equipamento destes exemplos foram escolhidos por nós para ilustrar o cálculo, e não foram lidos da API.
+
+```
+Out:
+Machine Chest Press -> 0 iniciante ['3 músculos envolvidos (+1)', 'palavras de apoio no nome: machine (-1)']
+Barbell Back Squat -> 3 intermédio ['4 músculos envolvidos (+2)', 'equipamento exigente: Barbell (+1)']
+Single-Leg Deficit Deadlift -> 5 avançado ['4 músculos envolvidos (+2)', 'palavras avançadas no nome: single-leg, deficit (+2)', 'equipamento exigente: Barbell (+1)']
+Plank -> 0 iniciante []
+Cleaner Row -> 1 iniciante ['2 músculos envolvidos (+1)']
+Weighted Pull-ups -> 4 avançado ['4 músculos envolvidos (+2)', 'palavras avançadas no nome: weighted (+2)']
+Seated Cable Row -> 0 iniciante ['3 músculos envolvidos (+1)', 'palavras de apoio no nome: seated (-1)']
+```
+
+**Traço de "Single-Leg Deficit Deadlift"** (4 músculos, com barra):
+
+1. 4 músculos: +2.
+2. `single-leg` e `deficit` correspondem à regex avançada: +2 (uma só vez, mesmo com duas palavras).
+3. Equipamento `Barbell`: +1.
+4. Total 5.
+
+## 4. Converter a pontuação em nível e devolver o resultado
+
+```python
+def level_from_score(score):
+    if score <= 1:  return "iniciante"
+    if score <= 3:  return "intermédio"
+    return "avançado"
+```
+
+Definimos três faixas: até 1 ponto é iniciante, 2 ou 3 é intermédio, 4 ou mais é avançado. **São parâmetros exploratórios, não limiares cientificamente validados**, e podem ser ajustados. O resultado final inclui sempre as razões:
+
+```python
+{"id": 3, "name": "Single-Leg Deficit Deadlift", "level": "avançado", "score": 5,
+ "reasons": ["4 músculos envolvidos (+2)",
+             "palavras avançadas no nome: single-leg, deficit (+2)",
+             "equipamento exigente: Barbell (+1)"]}
+```
+
+Este exemplo vem dos dados de teste (API simulada) do `test_extras.py`. Não é um exercício real da wger.
+
+## Limitações
+
+- Um nome pouco informativo (como `Plank`) fica sempre *iniciante*, porque o nome não dá pistas.
+- Os músculos primários e secundários contam o mesmo, como no notebook. Isto pode inflacionar exercícios com muitos secundários.
+- Nenhum nível *avançado* indica exigência técnica real. É uma **estimativa por regras**, e a vantagem é ser transparente (`reasons`).
+
+---
+
+# Extra 2: `ingredient` (valores nutricionais de um ingrediente)
+
+**Objetivo:** pesquisar um ingrediente pelo nome e mostrar calorias e macronutrientes, escalados para a quantidade em gramas pedida.
+
+Este extra usa a parte do enunciado sobre ingredientes nutricionais, que nenhum outro comando usava.
+
+## 1. Pedir os ingredientes à API
+
+```python
+params = {"name__search": name.strip(), "language": LANGUAGE, "limit": PAGE_SIZE}   # PAGE_SIZE = 50
+page = get_json("ingredientinfo/", params)
+items = page.get("results")
+```
+
+Pede-se apenas **uma página de 50 resultados**, o suficiente para filtrar e mostrar alguns. Cada ingrediente traz, entre outros campos, `name`, `energy`, `protein`, `carbohydrates` e `fat`, por 100 g. A API devolve os valores como **texto** (por exemplo `"165.0"`) e por vezes como `null`.
+
+## 2. Converter para número e escalar
+
+```python
+def _number(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+def _scaled(value, grams):
+    number = _number(value)
+    return None if number is None else round(number * grams / 100, 1)
+```
+
+```python
+extras._number("165.0"), extras._number(None), extras._number("abc")
+extras._scaled("165.0", 150), extras._scaled("3.6", 150)
+```
+```
+Out: (165.0, None, None)
+Out: (247.5, 5.4)
+```
+
+**Traço** para frango com 165 kcal por 100 g, em 150 g: 165 × 150 / 100 = 247,5. Um valor em falta ou inválido fica `None`, que aparece como `null` no JSON em vez de provocar um erro.
+
+## 3. Filtrar os resultados pelo nome (guarda)
+
+```python
+words = re.findall(r"\w+", name)
+patterns = [re.compile(r"\b" + re.escape(word), re.IGNORECASE) for word in words]
+matches = [item for item in items
+           if all(p.search(item.get("name") or "") for p in patterns)]
+```
+
+Existe um problema conhecido da API da wger: **filtros que ela não reconhece são ignorados sem aviso**, e devolve o catálogo inteiro (issue #2538, a propósito dos endpoints de exercícios). Por isso só se aceitam ingredientes cujo nome contém **todas** as palavras pedidas, pela ordem que for, ignorando maiúsculas. Assim, `chicken breast` apanha `Chicken, breast, grilled`.
+
+```python
+re.findall(r"\w+", "chicken breast")
+re.findall(r"\w+", "!!!")
+```
+```
+Out: ['chicken', 'breast']
+Out: []
+```
+
+Se não sobrar nenhuma palavra (como em `!!!`) dá erro de utilização. Se nenhum resultado corresponder, dá `Nenhum ingrediente encontrado para '...'`.
+
+## 4. Construir o resultado
+
+```python
+[{"name": item["name"],
+  "quantity_g": grams,
+  "energy_kcal": _scaled(item.get("energy"), grams),
+  "protein_g": _scaled(item.get("protein"), grams),
+  "carbs_g": _scaled(item.get("carbohydrates"), grams),
+  "fat_g": _scaled(item.get("fat"), grams)}
+ for item in matches[:limit]]
+```
+
+**Resultado de um teste real** (`ingredient banana`, excerto; o início da lista foi omitido):
+
+```
+Out:
+  { "name": "Banana", "quantity_g": 100.0, "energy_kcal": 312.0, "protein_g": 12.5, "carbs_g": 40.6, "fat_g": 6.2 },
+  { "name": "Banana", "quantity_g": 100.0, "energy_kcal": 336.0, "protein_g": 0.0,  "carbs_g": 78.6, "fat_g": 1.1 },
+  { "name": "Banana", "quantity_g": 100.0, "energy_kcal": 200.0, "protein_g": 3.6,  "carbs_g": 26.0, "fat_g": 9.0 }
+```
+
+## Limitações
+
+- Aparecem **várias entradas com o mesmo nome** e valores muito diferentes, porque a base de dados é colaborativa. Estes valores (200 a 336 kcal por 100 g) estão acima do esperado para uma banana crua, o que sugere produtos processados ou registos pouco fiáveis. A função não escolhe "a melhor" entrada, porque a API não diz qual é a mais fiável.
+- A pesquisa é por nome em inglês (`language=2`), por isso termos em português não funcionam.
+- Como só se lê uma página de 50, um termo muito comum pode não mostrar todas as entradas.
+
+---
+
+# Resumo
+
+| | `difficulty` | `ingredient` |
+|---|---|---|
+| **Pergunta que responde** | Que nível tem este exercício? | Que valores nutricionais tem este alimento? |
+| **Dados da API** | `exerciseinfo/<id>/` | `ingredientinfo/` |
+| **Uso de `re`** | Palavras avançadas e de apoio no nome | Todas as palavras do termo no nome |
+| **Critério** | Pontuação com limiares exploratórios | Filtro por nome e escala por gramas |
+| **Ponto fraco** | Nomes pouco informativos | Entradas repetidas e de qualidade variável |
+
+Se quiseres, preparo este texto como um notebook `.ipynb` com as células de código prontas a correr, para ficar no mesmo formato do notebook dos músculos.
