@@ -1,4 +1,4 @@
-# Alínea C: Classificação do tipo de exercício
+# Alínea C — Classificação do esforço
 
 ## Objetivo
 
@@ -113,3 +113,23 @@ python fitcli.py type "biceps dumbbells" --find --deep --limit 5
 Quando é utilizada a opção `--find`, o programa devolve uma lista com **ID, nome e tipo de esforço** de cada exercício encontrado, apresentando também o total de exercícios exibidos.
 
 A pesquisa não altera as regras de classificação: apenas disponibiliza uma forma alternativa de obter os exercícios.
+## Funções e ficheiros
+
+`classify_effort` e `exercise_type` permanecem em `fitlib/exercises.py`.
+A pesquisa `search_exercise_types` está em `fitlib/extras.py` e reutiliza a classificação.
+
+## Cache e autenticação
+
+Consultas públicas usam `disk` predefinido, com TTL de 14 dias. Os resultados
+calculados não criam outra cache. Ver [CACHE.md](../CACHE.md).
+
+## Verificação
+
+Executar os testes de reorganização com dados simulados. Validar os resultados,
+os filtros e os limites, sem depender da disponibilidade da API real.
+
+## Limitações
+
+Os limiares da análise não são uma avaliação científica do esforço. O notebook
+contém uma divergência entre o texto (5/60%) e o código (6/66,67%); esta alteração
+preserva ambos e não muda o algoritmo para resolver uma questão metodológica.

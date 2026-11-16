@@ -7,3 +7,5 @@ __pycache__/
 # Dados públicos guardados em execução; preservar a política de cache de Nathan.
 fitlib/cache.json
 AeB/cache.json
+# Treinos locais pertencem ao computador.
+workouts/*.json

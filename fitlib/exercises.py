@@ -1,14 +1,20 @@
-"""Alíneas A/B integradas de Rafael; pontos de implementação de c) e d)."""
-
+import csv
+import json
 import re
+from pathlib import Path
 from typing import Any
 
-from . import api, processing
+from . import api
+
+
+# ===========================================================================
+# [BASE] IDIOMA E NORMALIZAÇÃO
+# Representação de exercício partilhada pelas alíneas e pelos extras.
+# ===========================================================================
 
 LANGUAGE = 2
 
 
-# Lógica de Rafael em AeB/fitcli.py, adaptada aos módulos principais.
 def _name_in_english(exercise: dict) -> str | None:
     for translation in exercise.get("translations", []):
         if translation.get("language") == LANGUAGE and translation.get("name"):
@@ -17,7 +23,7 @@ def _name_in_english(exercise: dict) -> str | None:
 
 
 def _format(exercise: dict) -> dict[str, Any] | None:
-    """Normalizar sem perder os dados úteis às próximas alíneas."""
+    """Normalizar os dados dos exercícios com tradução inglesa."""
     name = _name_in_english(exercise)
     if name is None:
         return None
@@ -42,12 +48,15 @@ def _format(exercise: dict) -> dict[str, Any] | None:
     }
 
 
+# ===========================================================================
+# [A/B] CONSULTA E PESQUISA POR MÚSCULO/CATEGORIA
+# ===========================================================================
+
 def top_exercises(limit: int, refresh: bool = False) -> list[dict[str, Any]]:
     """a) Obter até N exercícios recentes com tradução inglesa."""
     if limit <= 0:
         raise ValueError("O limite deve ser positivo.")
     params = {"language": LANGUAGE, "ordering": "-created", "limit": min(limit, 100)}
-    # get_list/get_data de Nathan aceitam o endpoint relativo e os next absolutos.
     return api.get_list(
         "exerciseinfo/", params, max_items=limit,
         refresh=refresh, transform=_format,
@@ -103,98 +112,11 @@ def search_exercises(target: str, limit: int, refresh: bool = False) -> list[dic
     return results
 
 
-# Algoritmo para o tipo de exercício e funções extras - Nathan
+# ===========================================================================
+# [C] CLASSIFICAÇÃO DO ESFORÇO
+# Preservar as regras existentes: são reutilizadas pelo plano da alínea e).
+# ===========================================================================
 
-# EXTRA: função para pesquisar pelo exercício através do nome ou do nome e descrição
-def word_pattern(word: str) -> re.Pattern:
-    word = word.lower()
-
-    # Plurais irregulares
-    exceptions = {
-        "calf": "calves",
-        "foot": "feet",
-        "scapula": "scapulae",
-        "vertebra": "vertebrae"
-    }
-
-    for singular, plural in exceptions.items():
-        if word in (singular, plural):
-            pattern = rf"(?:{singular}|{plural})"
-            return re.compile(rf"\b{pattern}\b", re.IGNORECASE)
-
-    # fly / flies, body / bodies
-    if re.search(r"[^aeiou](?:y|ies)$", word):
-        base = re.sub(r"(?:y|ies)$", "", word)
-        pattern = rf"{re.escape(base)}(?:y|ies)"
-
-    # press / presses, bench / benches
-    elif re.search(r"(?:ss|sh|ch|x|z)(?:es)?$", word):
-        base = re.sub(r"es$", "", word)
-        pattern = rf"{re.escape(base)}(?:es)?"
-
-    # curl / curls, dumbbell / dumbbells
-    else:
-        base = re.sub(r"s$", "", word) if not word.endswith(("ss", "us", "is")) else word
-        pattern = rf"{re.escape(base)}s?"
-
-    return re.compile(rf"\b{pattern}\b", re.IGNORECASE)
-
-
-def find_exercises(query: str, limit: int = 20, deep: bool = False, show_description: bool = False, raw: bool = False) -> list[dict]:
-
-    if limit <= 0:
-        raise ValueError("O limite deve ser positivo.")
-
-    words = re.findall(r"[^\W_]+", query)
-
-    if not words:
-        raise ValueError("Pesquisa vazia.")
-
-    params = {"language__code": "en", "limit": 100}
-
-    if not deep:
-        params["name__search"] = query.strip()
-
-    patterns = [
-        word_pattern(word)
-        for word in set(words)
-    ] if deep else []
-
-    def filter_exercise(exercise: dict) -> dict | None:
-        data = _format(exercise)
-
-        if data is None:
-            return None
-
-        description = ""
-
-        if deep or show_description:
-            description = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", data["description"])).strip()
-
-        if deep:
-            text = data["name"] + " " + description
-
-            if not all(pattern.search(text) for pattern in patterns):
-                return None
-
-        if raw:
-            return exercise
-
-        result = {"id": data["id"], "name": data["name"]}
-
-        if show_description:
-            result["description"] = description
-
-        return result
-
-    return api.get_list(
-        "exerciseinfo/",
-        params=params,
-        max_items=limit,
-        transform=filter_exercise
-    )
-
-# Função para classificar o tipo do exercício
 COMPOUND_PATTERN = (
     r"\b(?:"
     r"press|pull|squat|row|ups|up|bench|incline|"
@@ -248,89 +170,246 @@ def classify_effort(exercise: dict) -> str:
 
     return "other"
 
-# EXTRA: função para comparar exercícios
-def _compare_attribute(items: list[dict], field: str) -> dict:
-    occurrences = {}
-
-    for item in items:
-        values = item[field]
-
-        if not isinstance(values, list):
-            values = [values]
-
-        for value in set(values) - {None, ""}:
-            occurrences.setdefault(value, []).append(item["id"])
-
-    common = []
-    shared = {}
-    exclusive = {}
-
-    for value, found in sorted(occurrences.items()):
-        if len(found) == len(items):
-            common.append(value)
-
-        elif len(found) > 1:
-            shared[value] = found
-
-        else:
-            exclusive[value] = found[0]
-
-    result = {"comuns_a_todos": common}
-
-    if len(items) > 2:
-        result["partilhados"] = shared
-
-    result["exclusivos"] = exclusive
-
-    return result
-
-
-def compare_exercises(ids: list[int]) -> dict:
-    if len(ids) < 2:
-        raise ValueError("Indique pelo menos dois exercícios.")
-
-    if len(ids) != len(set(ids)) or min(ids) <= 0:
-        raise ValueError("Os IDs devem ser positivos e diferentes.")
-
-    items = []
-
-    for exercise_id in ids:
-        exercise = api.get_data(f"exerciseinfo/{exercise_id}/")
-        data = _format(exercise)
-
-        if data is None:
-            raise ValueError(f"Exercício {exercise_id} sem tradução inglesa.")
-
-        data["type"] = classify_effort(exercise)
-
-        items.append(data)
-
-    comparison = {}
-
-    for field in ("category", "type", "muscles", "muscles_secondary", "equipment"):
-        comparison[field] = _compare_attribute(items, field)
-
-    return {"total_exercicios": len(items), "comparacao": comparison}
-
 
 def exercise_type(exercise_id: int) -> str:
-    """c): inferir o esforço pela descrição, categoria e músculos."""
+    """c) Classificar o esforço pela categoria, nome e músculos."""
     exercise = api.get_data(f"exerciseinfo/{exercise_id}/")
     return classify_effort(exercise)
 
 
-def search_exercise_types(query: str, limit: int = 20, deep: bool = False) -> list[dict]:
-    found = find_exercises(query, limit, deep, raw=True)
-    return [
-        {
-            "id": exercise["id"],
-            "name": _name_in_english(exercise),
-            "type": classify_effort(exercise)
-        }
-        for exercise in found
-    ]
+# ===========================================================================
+# [D] FREQUÊNCIA DE EQUIPAMENTO
+# ===========================================================================
+
+def equipment_frequency(
+    category: str
+) -> list[dict[str, int]]:
+    """d) Contar as menções a equipamentos nas descrições de uma categoria."""
+    categories = api.get_list(
+        "exercisecategory/"
+    )
+
+    pattern = re.compile(
+        rf"^{re.escape(category.strip())}$",
+        re.IGNORECASE
+    )
+
+    category_ids = _matching_ids(
+        categories,
+        pattern
+    )
+
+    if not category_ids:
+        raise ValueError(
+            f"Categoria não encontrada: {category}"
+        )
+
+    category_id = category_ids[0]
+
+    exercises = api.get_list(
+        "exerciseinfo/",
+        params={"category": category_id},
+        transform=_format
+    )
+
+    descriptions = []
+
+    for exercise in exercises:
+        descriptions.append(exercise["description"])
+
+    return count_equipment(
+        descriptions
+    )
+
+# PROCESSAMENTO DE DESCRIÇÕES
+
+EQUIPMENT_PATTERNS = {
+    "Barbell": re.compile(
+        r"\bbarbells?\b",
+        re.IGNORECASE
+    ),
+    # Não reconhecer "bench" dentro de "incline bench".
+    "Bench": re.compile(
+        r"(?<!incline )\bbench(?:es)?\b",
+        re.IGNORECASE
+    ),
+    "Cable machine": re.compile(
+        r"\b(?:cable\s+machines?|cables?)\b",
+        re.IGNORECASE
+    ),
+    "Dumbbell": re.compile(
+        r"\bdumbbells?\b",
+        re.IGNORECASE
+    ),
+    "Gym mat": re.compile(
+        r"\b(?:gym|exercise)\s+mats?\b",
+        re.IGNORECASE
+    ),
+    "Incline bench": re.compile(
+        r"\bincline\s+bench(?:es)?\b",
+        re.IGNORECASE
+    ),
+    "Kettlebell": re.compile(
+        r"\bkettlebells?\b",
+        re.IGNORECASE
+    ),
+    "Pull-up bar": re.compile(
+        r"\bpull[- ]up\s+bars?\b",
+        re.IGNORECASE
+    ),
+    "Resistance band": re.compile(
+        r"\bresistance\s+bands?\b",
+        re.IGNORECASE
+    ),
+    "SZ-Bar": re.compile(
+        r"\b(?:sz|ez)[- ]bar\b",
+        re.IGNORECASE
+    ),
+    "Swiss Ball": re.compile(
+        r"\b(?:swiss|stability)\s+balls?\b",
+        re.IGNORECASE
+    ),
+    "none (bodyweight exercise)": re.compile(
+        r"\b(?:bodyweight|body\s+weight)\b",
+        re.IGNORECASE
+    )
+}
 
 
-def equipment_frequency(category: str) -> list[dict[str, Any]]:
-    """TODO d): extrair equipamento com re e ordenar por frequência."""
-    raise NotImplementedError("Comando equipment ainda por implementar.")
+HTML_TAGS = re.compile(r"<[^>]+>")
+
+
+def clean_description(description: str) -> str:
+    """Remover tags HTML e normalizar os espaços da descrição."""
+    cleaned = HTML_TAGS.sub(" ", description)
+    cleaned = " ".join(cleaned.split())
+    return cleaned
+
+
+def count_equipment(
+    descriptions: list[str],
+    limpar_html: bool = True
+) -> list[dict[str, int]]:
+    """Contar as menções a cada equipamento nas descrições."""
+    contagem = {}
+
+    for description in descriptions:
+        texto = description
+
+        # Limpar HTML para não contar equipamento nos atributos das tags.
+        if limpar_html:
+            texto = clean_description(description)
+
+        for equipment, pattern in EQUIPMENT_PATTERNS.items():
+            encontrados = pattern.findall(texto)
+            quantidade = len(encontrados)
+
+            if quantidade > 0:
+                anterior = contagem.get(equipment, 0)
+                contagem[equipment] = anterior + quantidade
+
+    resultado = []
+
+    for equipment, quantidade in contagem.items():
+        resultado.append({
+            equipment.lower(): quantidade
+        })
+
+    # A ordenação por frequência decrescente fica por implementar.
+    return resultado
+
+# ===========================================================================
+# [E] PLANO POR ALVO E ESFORÇO
+# ===========================================================================
+
+def search_by_category(muscle: str, category: str, n: int) -> list[dict[str, Any]]:
+    """Pesquisar mais candidatos até reunir N exercícios do esforço pedido."""
+    if n <= 0:
+        raise ValueError("O limite deve ser positivo.")
+    if category not in ("compound", "isolated", "any"):
+        raise ValueError("Indique compound, isolated ou any.")
+
+    resultado = []
+    verificados = {}
+    limite_pesquisa = n
+
+    while True:
+        candidatos = search_exercises(muscle, limite_pesquisa)
+
+        for exercise in candidatos:
+            exercise_id = exercise["id"]
+            if exercise_id in verificados:
+                continue
+
+            tipo = exercise_type(exercise_id)
+            verificados[exercise_id] = tipo
+
+            if category == "any" or tipo == category:
+                exercise = exercise.copy()
+                exercise["type"] = tipo
+                resultado.append(exercise)
+
+                if len(resultado) == n:
+                    return resultado
+
+        if len(candidatos) < limite_pesquisa:
+            return resultado
+
+        limite_pesquisa += n
+
+
+def build_workout(targets: str, effort: str, limit: int) -> dict[str, list[dict[str, Any]]]:
+    """e) Reutilizar pesquisa e classificação, com um limite por alvo."""
+    if limit <= 0:
+        raise ValueError("O limite deve ser positivo.")
+    if effort not in ("compound", "isolated", "any"):
+        raise ValueError("Indique compound, isolated ou any.")
+
+    alvos = []
+    for target in targets.split(","):
+        target = target.strip()
+        if not target:
+            raise ValueError("Indique alvos não vazios separados por vírgula.")
+        alvos.append(target)
+
+    plano = {}
+    for target in alvos:
+        if target not in plano:
+            plano[target] = search_by_category(target, effort, limit)
+
+    return plano
+
+# ===========================================================================
+# [SAÍDA BASE] JSON
+# ===========================================================================
+
+def print_json(data: Any) -> None:
+    """Imprimir JSON indentado, preservando acentos e terminando com newline."""
+    print(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False))
+
+# ===========================================================================
+# [EXPORTACAO CSV] PLANO DA ALÍNEA E
+# ===========================================================================
+
+CSV_FIELDS = ("target", "id", "name", "category", "equipment", "type")
+
+
+def _csv_value(value: Any) -> Any:
+    """Representar estruturas numa célula sem perder os seus campos."""
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False, allow_nan=False)
+    return value
+
+
+def write_workout_csv(workout: dict[str, list[dict[str, Any]]], path: Path) -> None:
+
+    with Path(path).open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        for target, exercises in workout.items():
+            for exercise in exercises:
+                row = {
+                    field: _csv_value(exercise.get(field, ""))
+                    for field in CSV_FIELDS if field != "target"
+                }
+                writer.writerow({"target": target, **row})
