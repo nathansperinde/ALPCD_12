@@ -142,7 +142,7 @@ def classify_effort(exercise: dict) -> str:
 
     name = ""
     for t in translations:
-        if t.get("language") == 2:
+        if t.get("language") == LANGUAGE:
             name = t.get("name") or ""
             break
 
