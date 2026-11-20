@@ -38,7 +38,6 @@ start(["Ligar a uma conta?"]) --> choice{"Ação"}
     class finish stop
 ```
 
-
 ### 3. Bloco B — Tentar renovar a sessão guardada
 
 ```mermaid
@@ -61,7 +60,6 @@ start(["refresh_login: nome válido"]) --> read["Ler refresh token do keyring"]
     class ready ok
     class error stop
 ```
-
 
 Este bloco trata um nome já validado. Antes de ler o keyring, a função também
 rejeita nome ausente e a chave reservada `last_username`.
@@ -93,7 +91,6 @@ ask(["Pedir palavra-passe oculta"]) --> valid{"Está preenchida?"}
     class finish stop
 ```
 
-
 Uma falha de gravação no keyring não impede devolver um access token já verificado.
 A tentativa de atualizar `last_username` ocorre apenas se o refresh token foi guardado.
 
@@ -113,7 +110,6 @@ start(["verify_access_token"]) --> request["POST em token/verify"]
     class accepted ok
     class rejected,error stop
 ```
-
 
 ### 6. Erros e cancelamento
 
@@ -145,7 +141,7 @@ Seleciona o endpoint de login e reutiliza post_data. O helper HTTP e as mensagen
 
 #### login_account
 
-[Fonte: tcli.py, linha 80](../../tcli.py#L80)
+[Fonte: tcli.py, linha 66](../../tcli.py#L66)
 
 ```python
 def login_account(dados: dict) -> dict:
@@ -157,11 +153,11 @@ def login_account(dados: dict) -> dict:
 
 | Linha | Explicação |
 |---|---|
-| 80 | Define `login_account` e os parâmetros/resultado usados neste bloco. |
-| 81 | Delega o pedido de login no helper HTTP explicado em XTcli.md. |
-| 82 | Seleciona o endpoint allauth de login; não é o endpoint público exerciseinfo. |
-| 83 | Encaminha as credenciais recebidas, sem as guardar num ficheiro. |
-| 84 | Fecha a chamada e devolve a resposta ao fluxo interativo. |
+| 66 | Define `login_account` e os parâmetros/resultado usados neste bloco. |
+| 67 | Delega o pedido de login no helper HTTP explicado em XTcli.md. |
+| 68 | Seleciona o endpoint allauth de login; não é o endpoint público exerciseinfo. |
+| 69 | Encaminha as credenciais recebidas, sem as guardar num ficheiro. |
+| 70 | Fecha a chamada e devolve a resposta ao fluxo interativo. |
 
 ### `save_token()`
 
@@ -169,7 +165,7 @@ Guarda uma entrada no keyring e devolve sucesso/falha. É reutilizada pelo login
 
 #### save_token
 
-[Fonte: tcli.py, linha 185](../../tcli.py#L185)
+[Fonte: tcli.py, linha 177](../../tcli.py#L177)
 
 ```python
 def save_token(name: str, token: str) -> bool:
@@ -183,13 +179,13 @@ def save_token(name: str, token: str) -> bool:
 
 | Linha | Explicação |
 |---|---|
-| 185 | Define `save_token` e os parâmetros/resultado usados neste bloco. |
-| 186 | Agrupa a tentativa de gravação no keyring. |
-| 187 | Guarda o token no serviço FITCLI-wger, associado à chave name. |
-| 188 | Confirma ao chamador que a gravação terminou. |
-| 189 | Trata indisponibilidade do keyring ou erro do sistema. |
-| 190 | Avisa que a persistência falhou, mas não invalida a sessão em memória. |
-| 191 | Devolve False para o chamador não assumir que a sessão foi guardada. |
+| 177 | Define `save_token` e os parâmetros/resultado usados neste bloco. |
+| 178 | Agrupa a tentativa de gravação no keyring. |
+| 179 | Guarda o token no serviço FITCLI-wger, associado à chave name. |
+| 180 | Confirma ao chamador que a gravação terminou. |
+| 181 | Trata indisponibilidade do keyring ou erro do sistema. |
+| 182 | Avisa que a persistência falhou, mas não invalida a sessão em memória. |
+| 183 | Devolve False para o chamador não assumir que a sessão foi guardada. |
 
 ### `refresh_login()`
 
@@ -197,7 +193,7 @@ Tenta renovar a sessão guardada. Guarda a rotação do refresh token antes de v
 
 #### Ler e renovar a sessão
 
-[Fonte: tcli.py, linha 194](../../tcli.py#L194)
+[Fonte: tcli.py, linha 186](../../tcli.py#L186)
 
 ```python
 def refresh_login(name: str | None) -> str | None:
@@ -230,33 +226,33 @@ def refresh_login(name: str | None) -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 194 | Define `refresh_login` e os parâmetros/resultado usados neste bloco. |
-| 195 | Ignora nomes ausentes e a chave de metadados reservada. |
-| 196 | Indica que não existe sessão a restaurar para esse nome. |
-| 198 | Protege a leitura do armazenamento seguro. |
-| 199 | Procura o refresh token dessa conta, sem o mostrar no terminal. |
-| 200 | Trata falha do keyring ou do sistema. |
-| 201 | Orienta para autenticação manual. |
-| 202 | Indica que não conseguiu restaurar uma sessão. |
-| 204 | Rejeita tokens guardados que não sejam texto ou estejam vazios. |
-| 205 | Permite que o chamador avance para pedir palavra-passe. |
-| 207 | Protege o pedido HTTP de renovação. |
-| 208 | Delega o POST no helper de autenticação. |
-| 209 | Escolhe o endpoint allauth de renovação. |
-| 210 | Envia apenas o refresh token guardado. |
-| 211 | Fecha o pedido de renovação. |
-| 212 | Trata a falha devolvida pelo helper HTTP. |
-| 213 | Lê a causa original para distinguir rejeição de falha de rede. |
-| 214 | Começa a exigir uma falha HTTP reconhecível. |
-| 215 | Confirma a existência da resposta do servidor. |
-| 216 | Identifica HTTP 400/401 como rejeição da sessão guardada. |
-| 217 | Explica que será necessário fornecer a palavra-passe. |
-| 218 | Devolve None para permitir o login manual. |
-| 219 | Propaga outras falhas: não transforma indisponibilidade de rede em credenciais inválidas. |
+| 186 | Define `refresh_login` e os parâmetros/resultado usados neste bloco. |
+| 187 | Ignora nomes ausentes e a chave de metadados reservada. |
+| 188 | Indica que não existe sessão a restaurar para esse nome. |
+| 190 | Protege a leitura do armazenamento seguro. |
+| 191 | Procura o refresh token dessa conta, sem o mostrar no terminal. |
+| 192 | Trata falha do keyring ou do sistema. |
+| 193 | Orienta para autenticação manual. |
+| 194 | Indica que não conseguiu restaurar uma sessão. |
+| 196 | Rejeita tokens guardados que não sejam texto ou estejam vazios. |
+| 197 | Permite que o chamador avance para pedir palavra-passe. |
+| 199 | Protege o pedido HTTP de renovação. |
+| 200 | Delega o POST no helper de autenticação. |
+| 201 | Escolhe o endpoint allauth de renovação. |
+| 202 | Envia apenas o refresh token guardado. |
+| 203 | Fecha o pedido de renovação. |
+| 204 | Trata a falha devolvida pelo helper HTTP. |
+| 205 | Lê a causa original para distinguir rejeição de falha de rede. |
+| 206 | Começa a exigir uma falha HTTP reconhecível. |
+| 207 | Confirma a existência da resposta do servidor. |
+| 208 | Identifica HTTP 400/401 como rejeição da sessão guardada. |
+| 209 | Explica que será necessário fornecer a palavra-passe. |
+| 210 | Devolve None para permitir o login manual. |
+| 211 | Propaga outras falhas: não transforma indisponibilidade de rede em credenciais inválidas. |
 
 #### Validar e guardar os novos tokens
 
-[Fonte: tcli.py, linha 221](../../tcli.py#L221)
+[Fonte: tcli.py, linha 213](../../tcli.py#L213)
 
 ```python
     data = response.get("data")
@@ -279,20 +275,20 @@ def refresh_login(name: str | None) -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 221 | Lê o objeto data da resposta de renovação. |
-| 222 | Exige que esse conteúdo seja um dicionário. |
-| 223 | Rejeita uma estrutura de resposta inesperada. |
-| 224 | Lê o novo access token. |
-| 225 | Usa o refresh token novo, ou conserva o anterior quando o campo está ausente. |
-| 226 | Exige que ambos os tokens sejam textos não vazios. |
-| 227 | Interrompe a renovação se os tokens forem inválidos. |
-| 230 | Guarda a eventual rotação do refresh token antes de verificar o access token. |
-| 231 | Verifica o novo access token antes de o devolver. |
-| 232 | Informa que o token da sessão não foi aceite. |
-| 233 | Permite regressar ao login manual. |
-| 234 | Verifica se a persistência do refresh token teve sucesso. |
-| 235 | Nesse caso tenta registar a última conta usada. |
-| 236 | Devolve o access token verificado, mesmo que a persistência tenha falhado. |
+| 213 | Lê o objeto data da resposta de renovação. |
+| 214 | Exige que esse conteúdo seja um dicionário. |
+| 215 | Rejeita uma estrutura de resposta inesperada. |
+| 216 | Lê o novo access token. |
+| 217 | Usa o refresh token novo, ou conserva o anterior quando o campo está ausente. |
+| 218 | Exige que ambos os tokens sejam textos não vazios. |
+| 219 | Interrompe a renovação se os tokens forem inválidos. |
+| 222 | Guarda a eventual rotação do refresh token antes de verificar o access token. |
+| 223 | Verifica o novo access token antes de o devolver. |
+| 224 | Informa que o token da sessão não foi aceite. |
+| 225 | Permite regressar ao login manual. |
+| 226 | Verifica se a persistência do refresh token teve sucesso. |
+| 227 | Nesse caso tenta registar a última conta usada. |
+| 228 | Devolve o access token verificado, mesmo que a persistência tenha falhado. |
 
 ### `verify_access_token()`
 
@@ -300,7 +296,7 @@ Distingue um token recusado (False) de uma verificação indisponível (RuntimeE
 
 #### verify_access_token
 
-[Fonte: tcli.py, linha 239](../../tcli.py#L239)
+[Fonte: tcli.py, linha 231](../../tcli.py#L231)
 
 ```python
 def verify_access_token(token: str) -> bool:
@@ -327,22 +323,22 @@ def verify_access_token(token: str) -> bool:
 
 | Linha | Explicação |
 |---|---|
-| 239 | Define `verify_access_token` e os parâmetros/resultado usados neste bloco. |
-| 241 | Protege a verificação HTTP. |
-| 242 | Inicia o POST direto que valida o access token. |
-| 243 | Seleciona o endpoint v2 de verificação. |
-| 244 | Envia o token num corpo JSON; não utiliza a cache. |
-| 245 | Aplica os cabeçalhos comuns. |
-| 246 | Limita o pedido a 15 segundos. |
-| 247 | Fecha a chamada HTTP de verificação. |
-| 249 | Reconhece HTTP 400/401 como token não aceite. |
-| 250 | Devolve False nesses casos em vez de ativar a sessão. |
-| 252 | Propaga outros estados HTTP de erro para o tratamento abaixo. |
-| 253 | Devolve True quando a resposta é de sucesso. |
-| 255 | Trata falhas de requests, incluindo HTTP e rede. |
-| 256 | Inicia a mensagem de verificação indisponível. |
-| 257 | Define o texto apresentado pelo chamador. |
-| 258 | Mantém a exceção original como causa. |
+| 231 | Define `verify_access_token` e os parâmetros/resultado usados neste bloco. |
+| 233 | Protege a verificação HTTP. |
+| 234 | Inicia o POST direto que valida o access token. |
+| 235 | Seleciona o endpoint v2 de verificação. |
+| 236 | Envia o token num corpo JSON; não utiliza a cache. |
+| 237 | Aplica os cabeçalhos comuns. |
+| 238 | Limita o pedido a 15 segundos. |
+| 239 | Fecha a chamada HTTP de verificação. |
+| 241 | Reconhece HTTP 400/401 como token não aceite. |
+| 242 | Devolve False nesses casos em vez de ativar a sessão. |
+| 244 | Propaga outros estados HTTP de erro para o tratamento abaixo. |
+| 245 | Devolve True quando a resposta é de sucesso. |
+| 247 | Trata falhas de requests, incluindo HTTP e rede. |
+| 248 | Inicia a mensagem de verificação indisponível. |
+| 249 | Define o texto apresentado pelo chamador. |
+| 250 | Mantém a exceção original como causa. |
 
 ### `connection_questionary()`
 
@@ -350,7 +346,7 @@ Recolhe a escolha entre login/registo. No ramo de login, tenta renovação antes
 
 #### Escolher o fluxo e validar o nome
 
-[Fonte: tcli.py, linha 261](../../tcli.py#L261)
+[Fonte: tcli.py, linha 256](../../tcli.py#L256)
 
 ```python
 def connection_questionary() -> str | None:
@@ -379,30 +375,30 @@ def connection_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 261 | Define `connection_questionary` e os parâmetros/resultado usados neste bloco. |
-| 262 | Permite cancelar o fluxo de ligação com teclado ou fim da entrada. |
-| 263 | Pergunta primeiro se o utilizador quer conectar-se a uma conta. |
-| 264 | Devolve None se a ligação não for confirmada. |
-| 266 | Inicia a seleção entre login e registo. |
-| 267 | Define o texto da pergunta. |
-| 268 | Disponibiliza as duas ações da conta. |
-| 269 | Apresenta a pergunta e recebe a escolha. |
-| 270 | Identifica a escolha de criação de conta. |
-| 271 | Delega o registo no guia separado XTcli_criacao_contas.md. |
-| 272 | Trata uma escolha diferente de login, incluindo cancelamento. |
-| 273 | Termina sem sessão para essa escolha. |
-| 275 | Inicia o ciclo de tentativas de login. |
-| 276 | Pede o nome de utilizador. |
-| 277 | Identifica cancelamento da pergunta. |
-| 278 | Termina sem access token. |
-| 279 | Remove espaços exteriores do nome. |
-| 280 | Rejeita nome vazio e last_username, que é uma chave reservada. |
-| 281 | Informa o problema do nome. |
-| 282 | Recomeça a pergunta sem enviar credenciais. |
+| 256 | Define `connection_questionary` e os parâmetros/resultado usados neste bloco. |
+| 257 | Permite cancelar o fluxo de ligação com teclado ou fim da entrada. |
+| 258 | Pergunta primeiro se o utilizador quer conectar-se a uma conta. |
+| 259 | Devolve None se a ligação não for confirmada. |
+| 261 | Inicia a seleção entre login e registo. |
+| 262 | Define o texto da pergunta. |
+| 263 | Disponibiliza as duas ações da conta. |
+| 264 | Apresenta a pergunta e recebe a escolha. |
+| 265 | Identifica a escolha de criação de conta. |
+| 266 | Delega o registo no guia separado XTcli_criacao_contas.md. |
+| 267 | Trata uma escolha diferente de login, incluindo cancelamento. |
+| 268 | Termina sem sessão para essa escolha. |
+| 270 | Inicia o ciclo de tentativas de login. |
+| 271 | Pede o nome de utilizador. |
+| 272 | Identifica cancelamento da pergunta. |
+| 273 | Termina sem access token. |
+| 274 | Remove espaços exteriores do nome. |
+| 275 | Rejeita nome vazio e last_username, que é uma chave reservada. |
+| 276 | Informa o problema do nome. |
+| 277 | Recomeça a pergunta sem enviar credenciais. |
 
 #### Renovar ou pedir credenciais
 
-[Fonte: tcli.py, linha 284](../../tcli.py#L284)
+[Fonte: tcli.py, linha 279](../../tcli.py#L279)
 
 ```python
             try:
@@ -438,37 +434,37 @@ def connection_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 284 | Agrupa renovação, login e verificação para tratar as suas falhas. |
-| 285 | Tenta reutilizar uma sessão guardada antes de pedir palavra-passe. |
-| 286 | Verifica se a renovação devolveu um access token. |
-| 287 | Informa o sucesso da sessão restaurada. |
-| 288 | Devolve o token e evita pedir novamente a palavra-passe. |
-| 290 | Pede a palavra-passe com entrada oculta quando não há sessão restaurada. |
-| 291 | Identifica cancelamento da pergunta da palavra-passe. |
-| 292 | Termina sem sessão. |
-| 293 | Rejeita palavra-passe vazia ou só com espaços. |
-| 294 | Explica que a palavra-passe é obrigatória. |
-| 295 | Recomeça o ciclo de perguntas. |
-| 297 | Envia as credenciais por login_account; a palavra-passe não é persistida. |
-| 298 | Lê os metadados do login. |
-| 299 | Exige meta como objeto e autenticação confirmada pelo servidor. |
-| 300 | Mostra uma mensagem quando o login ainda não está concluído. |
-| 301 | Passa à análise dos tokens quando a autenticação foi confirmada. |
-| 302 | Lê o access token. |
-| 303 | Lê o refresh token. |
-| 304 | Exige dois tokens textuais e não vazios. |
-| 305 | Informa resposta inválida sem aceitar a sessão. |
-| 306 | Se os tokens têm formato válido, verifica o access token. |
-| 307 | Informa rejeição da verificação. |
-| 308 | Só entra no ramo de sucesso depois da verificação. |
-| 309 | Tenta guardar o refresh token no keyring. |
-| 310 | Se a gravação teve sucesso, tenta atualizar last_username. |
-| 311 | Informa o sucesso do login. |
-| 312 | Devolve o access token para navegação autenticada. |
+| 279 | Agrupa renovação, login e verificação para tratar as suas falhas. |
+| 280 | Tenta reutilizar uma sessão guardada antes de pedir palavra-passe. |
+| 281 | Verifica se a renovação devolveu um access token. |
+| 282 | Informa o sucesso da sessão restaurada. |
+| 283 | Devolve o token e evita pedir novamente a palavra-passe. |
+| 285 | Pede a palavra-passe com entrada oculta quando não há sessão restaurada. |
+| 286 | Identifica cancelamento da pergunta da palavra-passe. |
+| 287 | Termina sem sessão. |
+| 288 | Rejeita palavra-passe vazia ou só com espaços. |
+| 289 | Explica que a palavra-passe é obrigatória. |
+| 290 | Recomeça o ciclo de perguntas. |
+| 292 | Envia as credenciais por login_account; a palavra-passe não é persistida. |
+| 293 | Lê os metadados do login. |
+| 294 | Exige meta como objeto e autenticação confirmada pelo servidor. |
+| 295 | Mostra uma mensagem quando o login ainda não está concluído. |
+| 296 | Passa à análise dos tokens quando a autenticação foi confirmada. |
+| 297 | Lê o access token. |
+| 298 | Lê o refresh token. |
+| 299 | Exige dois tokens textuais e não vazios. |
+| 300 | Informa resposta inválida sem aceitar a sessão. |
+| 301 | Se os tokens têm formato válido, verifica o access token. |
+| 302 | Informa rejeição da verificação. |
+| 303 | Só entra no ramo de sucesso depois da verificação. |
+| 304 | Tenta guardar o refresh token no keyring. |
+| 305 | Se a gravação teve sucesso, tenta atualizar last_username. |
+| 306 | Informa o sucesso do login. |
+| 307 | Devolve o access token para navegação autenticada. |
 
 #### Erros e repetição
 
-[Fonte: tcli.py, linha 314](../../tcli.py#L314)
+[Fonte: tcli.py, linha 309](../../tcli.py#L309)
 
 ```python
             except RuntimeError as error:
@@ -492,22 +488,22 @@ def connection_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 314 | Trata falhas HTTP/rede/JSON convertidas em RuntimeError. |
-| 315 | Lê a causa original preservada pelo helper. |
-| 316 | Se há uma resposta HTTP, pode escolher uma mensagem por estado. |
-| 317 | Inicia o mapa de mensagens de falha do login. |
-| 318 | Para HTTP 400, indica nome ou palavra-passe inválidos. |
-| 319 | Para HTTP 401, indica credenciais inválidas ou etapa adicional. |
-| 320 | Para HTTP 403, indica recusa ou necessidade de outro passo. |
-| 321 | Para HTTP 429, pede espera antes de nova tentativa. |
-| 322 | Fecha o mapa de mensagens. |
-| 323 | Apresenta a mensagem conhecida ou a alternativa de serviço indisponível. |
-| 324 | Trata falhas sem resposta HTTP utilizável. |
-| 325 | Mostra a mensagem de ligação/autenticação indisponível. |
-| 327 | Depois de falha ou login incompleto, pergunta se deve repetir. |
-| 328 | Termina sem sessão se a repetição não for confirmada. |
-| 329 | Captura Ctrl+C e fim da entrada. |
-| 330 | Abandona o fluxo sem token. |
+| 309 | Trata falhas HTTP/rede/JSON convertidas em RuntimeError. |
+| 310 | Lê a causa original preservada pelo helper. |
+| 311 | Se há uma resposta HTTP, pode escolher uma mensagem por estado. |
+| 312 | Inicia o mapa de mensagens de falha do login. |
+| 313 | Para HTTP 400, indica nome ou palavra-passe inválidos. |
+| 314 | Para HTTP 401, indica credenciais inválidas ou etapa adicional. |
+| 315 | Para HTTP 403, indica recusa ou necessidade de outro passo. |
+| 316 | Para HTTP 429, pede espera antes de nova tentativa. |
+| 317 | Fecha o mapa de mensagens. |
+| 318 | Apresenta a mensagem conhecida ou a alternativa de serviço indisponível. |
+| 319 | Trata falhas sem resposta HTTP utilizável. |
+| 320 | Mostra a mensagem de ligação/autenticação indisponível. |
+| 322 | Depois de falha ou login incompleto, pergunta se deve repetir. |
+| 323 | Termina sem sessão se a repetição não for confirmada. |
+| 324 | Captura Ctrl+C e fim da entrada. |
+| 325 | Abandona o fluxo sem token. |
 
 ## Verificação
 

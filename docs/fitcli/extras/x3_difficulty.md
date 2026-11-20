@@ -33,23 +33,25 @@ flowchart TD
     A["difficulty ID"] --> B{"ID positivo?"}
     B -->|Não| C["Apresentar erro"]
     B -->|Sim| D["Consultar exerciseinfo/ID/"]
-    D --> E["Obter nome, músculos e equipamento"]
-    E --> F["Calcular pontuação e razões"]
-    F --> G{"Pontuação até 1?"}
-    G -->|Sim| H["Iniciante"]
-    G -->|Não| I{"Pontuação até 3?"}
-    I -->|Sim| J["Intermédio"]
-    I -->|Não| K["Avançado"]
-    H --> L["Devolver resultado JSON"]
-    J --> L
-    K --> L
+    D --> E["Obter nome inglês, músculos e equipamento"]
+    E --> F{"Existe tradução inglesa?"}
+    F -->|Não| C
+    F -->|Sim| G["Calcular pontuação e razões"]
+    G --> H{"Pontuação até 1?"}
+    H -->|Sim| I["Iniciante"]
+    H -->|Não| J{"Pontuação até 3?"}
+    J -->|Sim| K["Intermédio"]
+    J -->|Não| L["Avançado"]
+    I --> M["Devolver resultado JSON"]
+    K --> M
+    L --> M
 ```
 
 O algoritmo é composto pelas seguintes operações:
 
 1. Validar o ID do exercício.
 2. Consultar os dados através de `api.get_data()`.
-3. Identificar o nome, preferencialmente em inglês.
+3. Obter o nome do exercício em inglês, apresentando um erro caso não exista tradução inglesa.
 4. Contar os músculos principais e secundários.
 5. Identificar os equipamentos associados.
 6. Aplicar as regras de pontuação.
@@ -162,7 +164,7 @@ Estes exemplos demonstram as regras implementadas e não correspondem necessaria
 
 | Função | Responsabilidade |
 |---|---|
-| `_exercise_name()` | Obter o nome inglês ou outro disponível |
+| `_name_in_english()` | Obter o nome inglês do exercício, ou `None` quando indisponível |
 | `_unique_matches()` | Identificar palavras correspondentes sem duplicação |
 | `score_difficulty()` | Calcular a pontuação e justificar as alterações |
 | `level_from_score()` | Converter a pontuação num nível |
@@ -177,7 +179,11 @@ def exercise_difficulty(exercise_id: int, refresh: bool = False) -> dict[str, An
         raise ValueError("O ID do exercício deve ser positivo.")
 
     exercise = api.get_data(f"exerciseinfo/{exercise_id}/", refresh=refresh)
-    name = _exercise_name(exercise)
+    name = _name_in_english(exercise)
+
+    if name is None:
+        raise ValueError(f"Exercício {exercise_id} sem tradução inglesa.")
+
     n_muscles = len(exercise.get("muscles") or []) + len(exercise.get("muscles_secondary") or [])
     equipment = [e.get("name") for e in exercise.get("equipment") or []]
 
@@ -228,6 +234,7 @@ Para mais informações, consultar a [documentação da cache](../../shared/cach
 - O número de músculos não corresponde necessariamente à dificuldade de execução.
 - Músculos principais e secundários têm o mesmo peso na contagem.
 - As expressões regulares dependem de palavras inglesas.
+- Exercícios sem tradução inglesa não são classificados nesta funcionalidade.
 - Exercícios com nomes pouco informativos podem receber classificações pouco representativas.
 - Não são considerados fatores individuais, como experiência, mobilidade, intensidade ou condição física.
 
@@ -238,6 +245,7 @@ Consequentemente, o resultado deve ser interpretado como uma estimativa baseada 
 | Cenário | Resultado esperado |
 |---|---|
 | ID inferior a 1 | Erro de validação |
+| Exercício sem tradução inglesa | Erro de validação |
 | Várias palavras avançadas | Apenas +2 pontos |
 | Pontuação igual a 1 | `iniciante` |
 | Pontuação igual a 2 ou 3 | `intermédio` |

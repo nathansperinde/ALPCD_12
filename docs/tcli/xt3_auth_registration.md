@@ -37,7 +37,6 @@ start(["Criar conta"]) --> name["Pedir nome e remover espaços exteriores"]
     class finish stop
 ```
 
-
 ### 3. Bloco B — Enviar o pedido uma vez
 
 ```mermaid
@@ -58,7 +57,6 @@ start(["POST de criação de conta"]) --> result{"Resultado do pedido"}
     class confirm,input ok
     class finish stop
 ```
-
 
 > **Não há reenvio automático de registo.** Depois de uma falha de rede a conta
 > pode já ter sido criada. Depois de um pedido aceite, uma falha de verificação
@@ -84,7 +82,6 @@ response(["Resposta de registo aceite"]) --> meta{"Meta confirma autenticação?
     class pending,invalid stop
 ```
 
-
 ### 5. Bloco D — Persistência e conclusão
 
 ```mermaid
@@ -101,7 +98,6 @@ start(["Sessão verificada"]) --> save["Tentar guardar refresh token no keyring"
     class save,last action
     class success,memory ok
 ```
-
 
 ### 6. Mensagens de erro
 
@@ -135,7 +131,7 @@ Seleciona o endpoint de registo; post_data está explicado em [XTcli.md](XTcli.m
 
 #### create_account
 
-[Fonte: tcli.py, linha 87](../../tcli.py#L87)
+[Fonte: tcli.py, linha 76](../../tcli.py#L76)
 
 ```python
 def create_account(dados: dict) -> dict:
@@ -147,11 +143,11 @@ def create_account(dados: dict) -> dict:
 
 | Linha | Explicação |
 |---|---|
-| 87 | Define `create_account` e os parâmetros/resultado usados neste bloco. |
-| 88 | Delega a criação de conta no mesmo helper HTTP usado pelo login. |
-| 89 | Seleciona o endpoint allauth de registo. |
-| 90 | Encaminha os dados de registo recebidos. |
-| 91 | Fecha a chamada e devolve a resposta do registo. |
+| 76 | Define `create_account` e os parâmetros/resultado usados neste bloco. |
+| 77 | Delega a criação de conta no mesmo helper HTTP usado pelo login. |
+| 78 | Seleciona o endpoint allauth de registo. |
+| 79 | Encaminha os dados de registo recebidos. |
+| 80 | Fecha a chamada e devolve a resposta do registo. |
 
 ### `creation_questionary()`
 
@@ -159,7 +155,7 @@ Separa erros de entrada, falhas do pedido e confirmação de uma resposta aceite
 
 #### Entrada e validação
 
-[Fonte: tcli.py, linha 94](../../tcli.py#L94)
+[Fonte: tcli.py, linha 83](../../tcli.py#L83)
 
 ```python
 def creation_questionary() -> str | None:
@@ -183,26 +179,26 @@ def creation_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 94 | Define `creation_questionary` e os parâmetros/resultado usados neste bloco. |
-| 95 | Permite abandonar o fluxo por interrupção do teclado ou fim da entrada. |
-| 96 | Repete as perguntas apenas enquanto o fluxo ainda não devolveu um resultado. |
-| 97 | Pede um nome de utilizador para a nova conta. |
-| 98 | Deteta que a pergunta foi cancelada. |
-| 99 | Termina sem fornecer um token. |
-| 100 | Remove espaços exteriores do nome. |
-| 101 | Rejeita nomes vazios e a chave reservada last_username. |
-| 102 | Mostra a mensagem de nome inválido. |
-| 103 | Recomeça as perguntas sem enviar um pedido de registo. |
-| 105 | Pede a palavra-passe através do campo oculto de questionary. |
-| 106 | Deteta cancelamento da pergunta da palavra-passe. |
-| 107 | Termina o registo sem token. |
-| 108 | Rejeita uma palavra-passe vazia ou composta só por espaços. |
-| 109 | Mostra que a palavra-passe é obrigatória. |
-| 110 | Recomeça as perguntas; não envia dados vazios. |
+| 83 | Define `creation_questionary` e os parâmetros/resultado usados neste bloco. |
+| 84 | Permite abandonar o fluxo por interrupção do teclado ou fim da entrada. |
+| 85 | Repete as perguntas apenas enquanto o fluxo ainda não devolveu um resultado. |
+| 86 | Pede um nome de utilizador para a nova conta. |
+| 87 | Deteta que a pergunta foi cancelada. |
+| 88 | Termina sem fornecer um token. |
+| 89 | Remove espaços exteriores do nome. |
+| 90 | Rejeita nomes vazios e a chave reservada last_username. |
+| 91 | Mostra a mensagem de nome inválido. |
+| 92 | Recomeça as perguntas sem enviar um pedido de registo. |
+| 94 | Pede a palavra-passe através do campo oculto de questionary. |
+| 95 | Deteta cancelamento da pergunta da palavra-passe. |
+| 96 | Termina o registo sem token. |
+| 97 | Rejeita uma palavra-passe vazia ou composta só por espaços. |
+| 98 | Mostra que a palavra-passe é obrigatória. |
+| 99 | Recomeça as perguntas; não envia dados vazios. |
 
 #### Pedido e erros de validação
 
-[Fonte: tcli.py, linha 112](../../tcli.py#L112)
+[Fonte: tcli.py, linha 101](../../tcli.py#L101)
 
 ```python
             try:
@@ -239,39 +235,39 @@ def creation_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 112 | Separa a falha do pedido de criação das verificações posteriores. |
-| 113 | Envia username e password para create_account. |
-| 114 | Recebe o RuntimeError do helper HTTP. |
-| 115 | Consulta a exceção original que o helper preservou. |
-| 116 | Distingue uma resposta HTTP conhecida de uma falha sem confirmação do servidor. |
-| 117 | Quando o resultado é incerto, orienta para login antes de repetir a criação. |
-| 118 | Interrompe a tentativa, evitando reenviar automaticamente um possível registo já aceite. |
-| 120 | Obtém o estado HTTP da resposta de erro. |
-| 121 | Reserva o tratamento detalhado para HTTP 400. |
-| 122 | Inicia o mapa de códigos de validação do registo. |
-| 123 | Traduz o código de nome de utilizador já ocupado. |
-| 124 | Traduz o código de palavra-passe demasiado curta. |
-| 125 | Traduz o código de palavra-passe demasiado comum. |
-| 126 | Traduz o código de palavra-passe inteiramente numérica. |
-| 127 | Traduz o código de palavra-passe demasiado semelhante ao utilizador. |
-| 128 | Fecha as mensagens de validação. |
-| 129 | Tenta ler os detalhes JSON da resposta HTTP 400. |
-| 130 | Descodifica o corpo de erro do servidor. |
-| 131 | Trata um corpo que não possa ser lido como JSON. |
-| 132 | Usa um dicionário vazio como alternativa ao erro ilegível. |
-| 133 | Só procura errors se o corpo for um dicionário; caso contrário usa lista vazia. |
-| 134 | Deteta lista de erros ausente, vazia ou de tipo incorreto. |
-| 135 | Mostra uma mensagem genérica de dados de registo inválidos. |
-| 136 | Segue para as mensagens específicas quando existe uma lista de erros. |
-| 137 | Percorre os erros devolvidos pelo servidor. |
-| 138 | Lê code apenas quando o item de erro é um dicionário. |
-| 139 | Rejeita códigos com tipo diferente de texto. |
-| 140 | Usa None para que o mapa escolha a mensagem genérica. |
-| 141 | Apresenta a tradução conhecida do código ou a mensagem de alternativa. |
+| 101 | Separa a falha do pedido de criação das verificações posteriores. |
+| 102 | Envia username e password para create_account. |
+| 103 | Recebe o RuntimeError do helper HTTP. |
+| 104 | Consulta a exceção original que o helper preservou. |
+| 105 | Distingue uma resposta HTTP conhecida de uma falha sem confirmação do servidor. |
+| 106 | Quando o resultado é incerto, orienta para login antes de repetir a criação. |
+| 107 | Interrompe a tentativa, evitando reenviar automaticamente um possível registo já aceite. |
+| 109 | Obtém o estado HTTP da resposta de erro. |
+| 110 | Reserva o tratamento detalhado para HTTP 400. |
+| 111 | Inicia o mapa de códigos de validação do registo. |
+| 112 | Traduz o código de nome de utilizador já ocupado. |
+| 113 | Traduz o código de palavra-passe demasiado curta. |
+| 114 | Traduz o código de palavra-passe demasiado comum. |
+| 115 | Traduz o código de palavra-passe inteiramente numérica. |
+| 116 | Traduz o código de palavra-passe demasiado semelhante ao utilizador. |
+| 117 | Fecha as mensagens de validação. |
+| 118 | Tenta ler os detalhes JSON da resposta HTTP 400. |
+| 119 | Descodifica o corpo de erro do servidor. |
+| 120 | Trata um corpo que não possa ser lido como JSON. |
+| 121 | Usa um dicionário vazio como alternativa ao erro ilegível. |
+| 122 | Só procura errors se o corpo for um dicionário; caso contrário usa lista vazia. |
+| 123 | Deteta lista de erros ausente, vazia ou de tipo incorreto. |
+| 124 | Mostra uma mensagem genérica de dados de registo inválidos. |
+| 125 | Segue para as mensagens específicas quando existe uma lista de erros. |
+| 126 | Percorre os erros devolvidos pelo servidor. |
+| 127 | Lê code apenas quando o item de erro é um dicionário. |
+| 128 | Rejeita códigos com tipo diferente de texto. |
+| 129 | Usa None para que o mapa escolha a mensagem genérica. |
+| 130 | Apresenta a tradução conhecida do código ou a mensagem de alternativa. |
 
 #### Outros estados e repetição
 
-[Fonte: tcli.py, linha 142](../../tcli.py#L142)
+[Fonte: tcli.py, linha 131](../../tcli.py#L131)
 
 ```python
                 else:
@@ -291,22 +287,22 @@ def creation_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 142 | Trata estados HTTP diferentes de 400. |
-| 143 | Inicia as orientações para esses outros estados. |
-| 144 | Para HTTP 401, indica que o registo pode exigir uma etapa adicional. |
-| 145 | Para HTTP 403, informa que criar contas não está disponível. |
-| 146 | Para HTTP 409, informa o conflito e orienta para login. |
-| 147 | Para HTTP 429, pede que se aguarde antes de tentar novamente. |
-| 148 | Fecha o mapa de orientações por estado HTTP. |
-| 149 | Mostra a orientação adequada ou a mensagem de indisponibilidade. |
-| 150 | Termina para os estados diferentes de 400, sem repetir o pedido. |
-| 152 | Depois de HTTP 400, pergunta se o utilizador quer tentar com novos dados. |
-| 153 | Se a repetição não for confirmada, termina sem token. |
-| 154 | Se confirmada, volta ao início do ciclo de perguntas. |
+| 131 | Trata estados HTTP diferentes de 400. |
+| 132 | Inicia as orientações para esses outros estados. |
+| 133 | Para HTTP 401, indica que o registo pode exigir uma etapa adicional. |
+| 134 | Para HTTP 403, informa que criar contas não está disponível. |
+| 135 | Para HTTP 409, informa o conflito e orienta para login. |
+| 136 | Para HTTP 429, pede que se aguarde antes de tentar novamente. |
+| 137 | Fecha o mapa de orientações por estado HTTP. |
+| 138 | Mostra a orientação adequada ou a mensagem de indisponibilidade. |
+| 139 | Termina para os estados diferentes de 400, sem repetir o pedido. |
+| 141 | Depois de HTTP 400, pergunta se o utilizador quer tentar com novos dados. |
+| 142 | Se a repetição não for confirmada, termina sem token. |
+| 143 | Se confirmada, volta ao início do ciclo de perguntas. |
 
 #### Confirmar e guardar a sessão
 
-[Fonte: tcli.py, linha 156](../../tcli.py#L156)
+[Fonte: tcli.py, linha 145](../../tcli.py#L145)
 
 ```python
             # O pedido foi aceite: não repetir o registo se a verificação falhar.
@@ -337,30 +333,30 @@ def creation_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 157 | Lê os metadados da resposta de um pedido aceite. |
-| 158 | Exige que meta seja objeto e is_authenticated seja exatamente True. |
-| 159 | Explica que a conta pode precisar de outro passo antes do login. |
-| 160 | Termina sem ativar uma sessão incompleta. |
-| 162 | Obtém o access token da resposta. |
-| 163 | Obtém o refresh token da resposta. |
-| 164 | Exige dois tokens textuais e não vazios. |
-| 165 | Informa que a resposta não permite confirmar a sessão. |
-| 166 | Não repete a criação nem fornece um token incompleto. |
-| 168 | Protege a verificação do access token. |
-| 169 | Consulta o endpoint de verificação antes de aceitar a sessão. |
-| 170 | Trata falha da verificação, incluindo rede. |
-| 171 | Considera a sessão não confirmada se a verificação falhar. |
-| 172 | Verifica o resultado booleano da confirmação. |
-| 173 | Orienta para Fazer login, pois o pedido de criação já foi aceite. |
-| 174 | Termina sem repetir o registo. |
-| 176 | Tenta guardar o refresh token no keyring sob o nome do utilizador. |
-| 177 | Só depois de guardar o token tenta atualizar a identificação da última conta. |
-| 178 | Informa o sucesso da criação e confirmação da sessão. |
-| 179 | Devolve o access token para uso na sessão em memória. |
+| 145 | Lê os metadados da resposta de um pedido aceite. |
+| 146 | Exige que meta seja objeto e is_authenticated seja exatamente True. |
+| 147 | Explica que a conta pode precisar de outro passo antes do login. |
+| 148 | Termina sem ativar uma sessão incompleta. |
+| 150 | Obtém o access token da resposta. |
+| 151 | Obtém o refresh token da resposta. |
+| 152 | Exige dois tokens textuais e não vazios. |
+| 153 | Informa que a resposta não permite confirmar a sessão. |
+| 154 | Não repete a criação nem fornece um token incompleto. |
+| 156 | Protege a verificação do access token. |
+| 157 | Consulta o endpoint de verificação antes de aceitar a sessão. |
+| 158 | Trata falha da verificação, incluindo rede. |
+| 159 | Considera a sessão não confirmada se a verificação falhar. |
+| 160 | Verifica o resultado booleano da confirmação. |
+| 161 | Orienta para Fazer login, pois o pedido de criação já foi aceite. |
+| 162 | Termina sem repetir o registo. |
+| 164 | Tenta guardar o refresh token no keyring sob o nome do utilizador. |
+| 165 | Só depois de guardar o token tenta atualizar a identificação da última conta. |
+| 166 | Informa o sucesso da criação e confirmação da sessão. |
+| 167 | Devolve o access token para uso na sessão em memória. |
 
 #### Cancelamento exterior
 
-[Fonte: tcli.py, linha 181](../../tcli.py#L181)
+[Fonte: tcli.py, linha 170](../../tcli.py#L170)
 
 ```python
     except (KeyboardInterrupt, EOFError):
@@ -369,8 +365,8 @@ def creation_questionary() -> str | None:
 
 | Linha | Explicação |
 |---|---|
-| 181 | Captura Ctrl+C e fim da entrada em qualquer pergunta. |
-| 182 | Abandona o registo de forma controlada. |
+| 170 | Captura Ctrl+C e fim da entrada em qualquer pergunta. |
+| 171 | Abandona o registo de forma controlada. |
 
 ## Verificação
 

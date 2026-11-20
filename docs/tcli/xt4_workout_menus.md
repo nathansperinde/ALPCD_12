@@ -43,7 +43,6 @@ start(["Criar treino"]) --> base["Pedir nome e número de sessões; consultar ca
     class invalid stop
 ```
 
-
 A criação consulta os catálogos uma vez antes do ciclo das sessões. Exercícios
 aparecem em português, com inglês como alternativa; nomes de músculos não são
 traduzidos automaticamente para português.
@@ -65,7 +64,6 @@ start(["Importar treino"]) --> list["Listar JSON de workouts/"]
     class result ok
     class finish stop
 ```
-
 
 A apresentação tenta atualizar o nome do exercício a partir dos detalhes públicos.
 Se não houver tradução ou ocorrer RuntimeError de HTTP/JSON, conserva o nome
@@ -90,7 +88,6 @@ start(["Ações do treino"]) --> action{"Exportar ou voltar?"}
     class reuse,create ok
     class finish stop
 ```
-
 
 O nome igual não prova que dois treinos tenham conteúdo igual: o código pede
 confirmação e não substitui nem compara automaticamente as estruturas.
@@ -119,16 +116,20 @@ start(["Ver templates exportados"]) --> list["Consultar templates com o token at
     class message,incompatible stop
 ```
 
-
 ### 6. Persistência, cache e limites
 
 - Treinos concluídos são guardados em `workouts/` sem sobrescrever nomes existentes.
+
 - O JSON local não contém tokens nem pertence a uma conta específica.
+
 - Catálogos e detalhes públicos usam `disk`; templates e escritas privadas não
   usam a cache pública. Ver [CACHE.md](../CACHE.md).
+
 - Uma falha/cancelamento antes da gravação pode deixar o treino por guardar.
+
 - A exportação remota pode ficar incompleta se um POST intermédio falhar; não
   existe rollback nem repetição automática.
+
 - O menu não oferece ativação de rotinas, repetição semanal ou registo de execuções.
 
 ## Parte 2 — Código explicado linha por linha
@@ -145,7 +146,7 @@ Traduz a apresentação para português com alternativa inglesa ou nome guardado
 
 #### show_workout
 
-[Fonte: tcli.py, linha 437](../../tcli.py#L437)
+[Fonte: tcli.py, linha 429](../../tcli.py#L429)
 
 ```python
 def show_workout(workout):
@@ -166,18 +167,18 @@ def show_workout(workout):
 
 | Linha | Explicação |
 |---|---|
-| 437 | Define `show_workout` e os parâmetros/resultado usados neste bloco. |
-| 438 | Mostra o nome do treino. |
-| 439 | Percorre as sessões. |
-| 440 | Mostra nome da sessão e músculos, ou a indicação de que não foram informados. |
-| 441 | Percorre os exercícios dessa sessão. |
-| 443 | Começa pelo nome já guardado no treino. |
-| 444 | Protege a consulta pública usada para atualizar a apresentação. |
-| 445 | Obtém os detalhes do exercício por ID, usando a cache pública. |
-| 446 | Prefere português, depois inglês; sem tradução mantém o nome guardado. |
-| 447 | Trata falha HTTP/JSON comunicada pela API como RuntimeError. |
-| 449 | Informa a falha sem impedir a apresentação do nome guardado. |
-| 450 | Mostra o nome escolhido e o número de séries; não reescreve o JSON. |
+| 429 | Define `show_workout` e os parâmetros/resultado usados neste bloco. |
+| 430 | Mostra o nome do treino. |
+| 431 | Percorre as sessões. |
+| 432 | Mostra nome da sessão e músculos, ou a indicação de que não foram informados. |
+| 433 | Percorre os exercícios dessa sessão. |
+| 435 | Começa pelo nome já guardado no treino. |
+| 436 | Protege a consulta pública usada para atualizar a apresentação. |
+| 437 | Obtém os detalhes do exercício por ID, usando a cache pública. |
+| 438 | Prefere português, depois inglês; sem tradução mantém o nome guardado. |
+| 439 | Trata falha HTTP/JSON comunicada pela API como RuntimeError. |
+| 441 | Informa a falha sem impedir a apresentação do nome guardado. |
+| 442 | Mostra o nome escolhido e o número de séries; não reescreve o JSON. |
 
 ### `import_workout()`
 
@@ -185,7 +186,7 @@ Escolhe um JSON local, delega a leitura/validação e apresenta o treino. Import
 
 #### import_workout
 
-[Fonte: tcli.py, linha 453](../../tcli.py#L453)
+[Fonte: tcli.py, linha 445](../../tcli.py#L445)
 
 ```python
 def import_workout():
@@ -202,16 +203,16 @@ def import_workout():
 
 | Linha | Explicação |
 |---|---|
-| 453 | Define `import_workout` e os parâmetros/resultado usados neste bloco. |
-| 454 | Inicia a lista de ficheiros que podem ser importados. |
-| 455 | Garante que a pasta local de treinos existe. |
-| 456 | Percorre ficheiros .json ordenados pelo caminho. |
-| 457 | Cria uma opção de menu com o nome de cada ficheiro. |
-| 458 | Pede ao utilizador que escolha um ficheiro. |
-| 459 | Só avança se a escolha não for Voltar/cancelamento. |
-| 460 | Lê e valida o JSON através de workouts.load_workout. |
-| 461 | Apresenta o treino sem voltar a gravar o ficheiro. |
-| 462 | Devolve o treino para permitir ações como exportação. |
+| 445 | Define `import_workout` e os parâmetros/resultado usados neste bloco. |
+| 446 | Inicia a lista de ficheiros que podem ser importados. |
+| 447 | Garante que a pasta local de treinos existe. |
+| 448 | Percorre ficheiros .json ordenados pelo caminho. |
+| 449 | Cria uma opção de menu com o nome de cada ficheiro. |
+| 450 | Pede ao utilizador que escolha um ficheiro. |
+| 451 | Só avança se a escolha não for Voltar/cancelamento. |
+| 452 | Lê e valida o JSON através de workouts.load_workout. |
+| 453 | Apresenta o treino sem voltar a gravar o ficheiro. |
+| 454 | Devolve o treino para permitir ações como exportação. |
 
 ### `create_workout()`
 
@@ -219,7 +220,7 @@ Recolhe os dados das sessões, obtém candidatos, apresenta o resultado e só en
 
 #### Preparar o treino e selecionar músculos
 
-[Fonte: tcli.py, linha 465](../../tcli.py#L465)
+[Fonte: tcli.py, linha 457](../../tcli.py#L457)
 
 ```python
 def create_workout():
@@ -241,25 +242,25 @@ def create_workout():
 
 | Linha | Explicação |
 |---|---|
-| 465 | Define `create_workout` e os parâmetros/resultado usados neste bloco. |
-| 466 | Pede o nome, limita-o a 25 caracteres e inicia o formato local versão 1. |
-| 467 | Pede entre uma e sete sessões. |
-| 468 | Consulta o catálogo público de equipamentos. |
-| 469 | Consulta o catálogo público de músculos. |
-| 470 | Percorre os músculos antes de os apresentar. |
-| 471 | Usa o nome inglês do músculo quando disponível; isto não traduz músculos para português. |
-| 472 | Repete a criação das sessões pedidas. |
-| 473 | Pede o nome da sessão e inicia as suas listas. |
-| 474 | Permite escolher os equipamentos disponíveis; começam pré-selecionados. |
-| 475 | Pede os músculos a treinar, permitindo várias escolhas. |
-| 476 | Deteta que nenhum músculo foi selecionado. |
-| 477 | Interrompe a criação em vez de guardar uma sessão incompleta. |
-| 478 | Percorre os músculos escolhidos. |
-| 479 | Guarda os seus nomes no formato local. |
+| 457 | Define `create_workout` e os parâmetros/resultado usados neste bloco. |
+| 458 | Pede o nome, limita-o a 25 caracteres e inicia o formato local versão 1. |
+| 459 | Pede entre uma e sete sessões. |
+| 460 | Consulta o catálogo público de equipamentos. |
+| 461 | Consulta o catálogo público de músculos. |
+| 462 | Percorre os músculos antes de os apresentar. |
+| 463 | Usa o nome inglês do músculo quando disponível; isto não traduz músculos para português. |
+| 464 | Repete a criação das sessões pedidas. |
+| 465 | Pede o nome da sessão e inicia as suas listas. |
+| 466 | Permite escolher os equipamentos disponíveis; começam pré-selecionados. |
+| 467 | Pede os músculos a treinar, permitindo várias escolhas. |
+| 468 | Deteta que nenhum músculo foi selecionado. |
+| 469 | Interrompe a criação em vez de guardar uma sessão incompleta. |
+| 470 | Percorre os músculos escolhidos. |
+| 471 | Guarda os seus nomes no formato local. |
 
 #### Selecionar exercícios e guardar
 
-[Fonte: tcli.py, linha 480](../../tcli.py#L480)
+[Fonte: tcli.py, linha 472](../../tcli.py#L472)
 
 ```python
         candidates = workouts.filtered_exercises(session["equipment"], targets)
@@ -277,17 +278,17 @@ def create_workout():
 
 | Linha | Explicação |
 |---|---|
-| 480 | Obtém candidatos filtrados por músculos/equipamentos, com nomes portugueses ou alternativa inglesa. |
-| 481 | Permite selecionar os exercícios candidatos. |
-| 482 | Deteta que nenhum exercício foi selecionado. |
-| 483 | Interrompe sem guardar o treino incompleto. |
-| 484 | Percorre os exercícios selecionados. |
-| 485 | Começa a entrada local preservando ID e nome apresentados. |
-| 486 | Pede 1–50 séries e conclui a entrada do exercício. |
-| 487 | Acrescenta a sessão concluída ao treino. |
-| 488 | Apresenta o treino completo antes da gravação. |
-| 489 | Valida e guarda automaticamente o JSON sem sobrescrever nomes existentes. |
-| 490 | Devolve o treino criado para as ações seguintes. |
+| 472 | Obtém candidatos filtrados por músculos/equipamentos, com nomes portugueses ou alternativa inglesa. |
+| 473 | Permite selecionar os exercícios candidatos. |
+| 474 | Deteta que nenhum exercício foi selecionado. |
+| 475 | Interrompe sem guardar o treino incompleto. |
+| 476 | Percorre os exercícios selecionados. |
+| 477 | Começa a entrada local preservando ID e nome apresentados. |
+| 478 | Pede 1–50 séries e conclui a entrada do exercício. |
+| 479 | Acrescenta a sessão concluída ao treino. |
+| 480 | Apresenta o treino completo antes da gravação. |
+| 481 | Valida e guarda automaticamente o JSON sem sobrescrever nomes existentes. |
+| 482 | Devolve o treino criado para as ações seguintes. |
 
 ### `export_template()`
 
@@ -295,7 +296,7 @@ Verifica nomes de templates existentes, oferece reutilização e só cria um nov
 
 #### export_template
 
-[Fonte: tcli.py, linha 498](../../tcli.py#L498)
+[Fonte: tcli.py, linha 489](../../tcli.py#L489)
 
 ```python
 def export_template(workout, token):
@@ -312,16 +313,16 @@ def export_template(workout, token):
 
 | Linha | Explicação |
 |---|---|
-| 498 | Define `export_template` e os parâmetros/resultado usados neste bloco. |
-| 499 | Lista os templates da conta por paginação autenticada, sem cache pública. |
-| 500 | Procura um template com o mesmo nome do treino local. |
-| 501 | Inicia a pergunta de reutilização de um nome existente. |
-| 502 | Mostra nome/ID do template e pede confirmação de reutilização. |
-| 503 | Se confirmada, devolve o template existente sem criar outro. |
-| 504 | Depois das verificações, pergunta explicitamente se deve exportar um novo template. |
-| 505 | Delega os POSTs de criação em workouts.create_template. |
-| 506 | Informa nome e ID do template criado. |
-| 507 | Devolve o resultado da exportação; sem confirmação a função termina com None. |
+| 489 | Define `export_template` e os parâmetros/resultado usados neste bloco. |
+| 490 | Lista os templates da conta por paginação autenticada, sem cache pública. |
+| 491 | Procura um template com o mesmo nome do treino local. |
+| 492 | Inicia a pergunta de reutilização de um nome existente. |
+| 493 | Mostra nome/ID do template e pede confirmação de reutilização. |
+| 494 | Se confirmada, devolve o template existente sem criar outro. |
+| 495 | Depois das verificações, pergunta explicitamente se deve exportar um novo template. |
+| 496 | Delega os POSTs de criação em workouts.create_template. |
+| 497 | Informa nome e ID do template criado. |
+| 498 | Devolve o resultado da exportação; sem confirmação a função termina com None. |
 
 ### `workout_actions()`
 
@@ -329,7 +330,7 @@ def export_template(workout, token):
 
 #### workout_actions
 
-[Fonte: tcli.py, linha 510](../../tcli.py#L510)
+[Fonte: tcli.py, linha 501](../../tcli.py#L501)
 
 ```python
 def workout_actions(workout, token):
@@ -341,11 +342,11 @@ def workout_actions(workout, token):
 
 | Linha | Explicação |
 |---|---|
-| 510 | Define `workout_actions` e os parâmetros/resultado usados neste bloco. |
-| 511 | Inicia o menu de ações para um treino concluído ou importado. |
-| 512 | Oferece exportação ou Voltar e lê a escolha. |
-| 513 | Só exporta quando a opção foi selecionada. |
-| 514 | Delega confirmação e exportação em export_template. |
+| 501 | Define `workout_actions` e os parâmetros/resultado usados neste bloco. |
+| 502 | Inicia o menu de ações para um treino concluído ou importado. |
+| 503 | Oferece exportação ou Voltar e lê a escolha. |
+| 504 | Só exporta quando a opção foi selecionada. |
+| 505 | Delega confirmação e exportação em export_template. |
 
 ### `template_menu()`
 
@@ -353,7 +354,7 @@ Consulta templates privados, converte estruturas suportadas e apresenta cada tre
 
 #### template_menu
 
-[Fonte: tcli.py, linha 517](../../tcli.py#L517)
+[Fonte: tcli.py, linha 508](../../tcli.py#L508)
 
 ```python
 def template_menu(token):
@@ -370,16 +371,16 @@ def template_menu(token):
 
 | Linha | Explicação |
 |---|---|
-| 517 | Define `template_menu` e os parâmetros/resultado usados neste bloco. |
-| 518 | Consulta os templates da conta atual sem cache pública. |
-| 519 | Deteta a conta sem templates. |
-| 520 | Informa a ausência de templates. |
-| 521 | Percorre cada template devolvido. |
-| 522 | Mostra nome e ID do template. |
-| 523 | Protege a conversão e apresentação da estrutura. |
-| 524 | Obtém a estrutura privada, converte para formato local e apresenta o treino. |
-| 525 | Trata estruturas incompatíveis rejeitadas por ValueError. |
-| 526 | Mostra a incompatibilidade e continua para os outros templates. |
+| 508 | Define `template_menu` e os parâmetros/resultado usados neste bloco. |
+| 509 | Consulta os templates da conta atual sem cache pública. |
+| 510 | Deteta a conta sem templates. |
+| 511 | Informa a ausência de templates. |
+| 512 | Percorre cada template devolvido. |
+| 513 | Mostra nome e ID do template. |
+| 514 | Protege a conversão e apresentação da estrutura. |
+| 515 | Obtém a estrutura privada, converte para formato local e apresenta o treino. |
+| 516 | Trata estruturas incompatíveis rejeitadas por ValueError. |
+| 517 | Mostra a incompatibilidade e continua para os outros templates. |
 
 ## Verificação
 
