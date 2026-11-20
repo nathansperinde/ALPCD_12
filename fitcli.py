@@ -5,7 +5,6 @@ from typing import Annotated, Any
 import typer
 
 from fitlib import exercises, extras
-from fitlib.exercises import build_workout
 
 
 # [BASE] CONFIGURAÇÃO
@@ -143,7 +142,7 @@ def workout(
         raise typer.BadParameter("Indique alvos não vazios separados por vírgula.", param_hint="targets")
 
     def action() -> Any:
-        plan = build_workout(targets, effort, n)
+        plan = exercises.build_workout(targets, effort, n)
         if csv_path is not None:
             exercises.write_workout_csv(plan, csv_path)
             total = 0
