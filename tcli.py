@@ -4,6 +4,10 @@ import keyring
 
 from fitlib import api, exercises, extras, workouts
 
+
+# [TCLI] CONFIGURAÇÃO
+# Cabeçalhos e mensagens HTTP
+
 HEADERS = {
     "User-Agent": "ALPCD-Grupo12/0.1",
     "Accept": "application/json"
@@ -19,10 +23,9 @@ HTTP_ERRORS = {
 }
 
 
-# ===========================================================================
-# [AUTENTICACAO] LOGIN, REGISTO, KEYRING E RESTAURO
+# [TCLI] AUTENTICAÇÃO
+# Pedidos HTTP e login
 # Lógica existente preservada; fornece o token às funcionalidades da conta.
-# ===========================================================================
 
 def post_data(url: str, dados: dict) -> dict:
     try:
@@ -83,6 +86,9 @@ def login_account(dados: dict) -> dict:
         dados
     )
 
+
+# [TCLI] REGISTO
+# Criação de contas
 
 def create_account(dados: dict) -> dict:
     return post_data(
@@ -182,6 +188,9 @@ def creation_questionary() -> str | None:
         return None
 
 
+# [TCLI] SESSÃO
+# Armazenamento, renovação e verificação de tokens
+
 def save_token(name: str, token: str) -> bool:
     try:
         keyring.set_password("FITCLI-wger", name, token)
@@ -258,6 +267,9 @@ def verify_access_token(token: str) -> bool:
         ) from error
 
 
+# [TCLI] LOGIN
+# Seleção de conta e autenticação interativa
+
 def connection_questionary() -> str | None:
     try:
         if not questionary.confirm("Deseja conectar-se a uma conta?", default=True).ask():
@@ -330,10 +342,9 @@ def connection_questionary() -> str | None:
         return None
 
 
-# ===========================================================================
-# [BASE CLI] ENTRADA E VALIDAÇÃO PARTILHADAS
+# [TCLI] ENTRADA
+# Perguntas e validação partilhadas
 # Usadas nos exercícios e na criação de treinos.
-# ===========================================================================
 
 def text(prompt, maximum=1000):
     while True:
@@ -378,9 +389,8 @@ def choose(prompt, items, multiple=False, selected=False):
     return questionary.select(prompt, choices=choices).ask()
 
 
-# ===========================================================================
-# [EXERCÍCIOS] CONSULTAS PÚBLICAS REUTILIZADAS DA FITCLI
-# ===========================================================================
+# [TCLI] EXERCÍCIOS
+# Consultas públicas reutilizadas da FITCLI
 
 def show_exercises(result):
     """Apresentar nomes portugueses sem alterar as regras das consultas."""
@@ -429,10 +439,9 @@ def exercise_menu():
         show_exercises(result)
 
 
-# ===========================================================================
-# [BASE LOCAL] CRIAR, IMPORTAR E APRESENTAR TREINOS
+# [TCLI] TREINOS LOCAIS
+# Criação, importação e apresentação
 # Prompts locais; persistência/validação em workouts.py. Independente da exportação.
-# ===========================================================================
 
 def show_workout(workout):
     print(f"\n{workout['name']}")
@@ -490,10 +499,9 @@ def create_workout():
     return workout
 
 
-# ===========================================================================
-# [EXPORTACAO WGER] TEMPLATES E MENU DE EXPORTAÇÃO
+# [TCLI] TEMPLATES WGER
+# Exportação e consulta
 # Exportar cria apenas um template privado; consultar não altera a conta.
-# ===========================================================================
 
 def export_template(workout, token):
     for template in api.get_list("templates/", token=token):
@@ -526,9 +534,8 @@ def template_menu(token):
             print(f"Template não compatível: {error}")
 
 
-# ===========================================================================
-# [NAVEGAÇÃO] EXERCÍCIOS, JSON LOCAL E TEMPLATES
-# ===========================================================================
+# [TCLI] NAVEGAÇÃO
+# Menu autenticado e gestão das operações
 
 def authenticated_menu(token):
     while token:
@@ -564,6 +571,9 @@ def authenticated_menu(token):
             print("Operação cancelada.")
     return "Sair"
 
+
+# [TCLI] ARRANQUE
+# Inicialização e restauro da sessão
 
 def main() -> str | None:
     workouts.WORKOUTS_DIR.mkdir(exist_ok=True)

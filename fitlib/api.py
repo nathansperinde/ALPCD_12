@@ -6,6 +6,9 @@ from pathlib import Path
 import requests
 
 
+# [API] CONFIGURAÇÃO
+# Endpoints, cabeçalhos e cache
+
 BASE_URL = "https://wger.de/api/v2/"
 CACHE_FILE = Path(__file__).with_name("cache.json")
 CACHE_TTL = 14 * 24 * 60 * 60
@@ -23,6 +26,9 @@ HTTP_ERRORS = {
     429: "Too many requests."
 }
 
+
+# [CACHE] LEITURA
+# Recuperação e validação dos dados guardados
 
 def _load_cache() -> dict:
     cache = {}
@@ -61,6 +67,9 @@ def _get_cached_data(cache: dict, key: str) -> dict | None:
     return None
 
 
+# [HTTP] BASE
+# Construção dos URLs da API
+
 def _build_url(endpoint: str) -> str:
     if endpoint.startswith("https://"):
         if not endpoint.startswith(BASE_URL):
@@ -68,6 +77,9 @@ def _build_url(endpoint: str) -> str:
         return endpoint
     return BASE_URL + endpoint.lstrip("/")
 
+
+# [HTTP] AUTENTICAÇÃO
+# Pedidos com token, sem cache
 
 def request(method, endpoint, token, data=None):
     """Pedido autenticado sem cache; GET usa parâmetros, POST/PATCH usam JSON."""
@@ -97,6 +109,9 @@ def request(method, endpoint, token, data=None):
     except ValueError as error:
         raise RuntimeError("Resposta JSON inválida.") from error
 
+
+# [HTTP] CONSULTAS PÚBLICAS
+# Pedidos GET e tratamento de erros
 
 def _request_data(url: str, params: dict | None) -> dict:
     try:
@@ -139,6 +154,9 @@ def _request_data(url: str, params: dict | None) -> dict:
         raise RuntimeError("Request failed.") from error
 
 
+# [CACHE] ESCRITA
+# Atualização e persistência dos dados
+
 def _write_cache(cache: dict) -> None:
     """Replace the JSON file atomically using a temporary file."""
     temporary_path = None
@@ -167,6 +185,9 @@ def _save_cache(cache: dict, key: str, data: dict, cache_mode: str = "disk") -> 
         _write_cache(cache)
 
 
+# [API] GET DATA
+# Consultas com gestão de cache
+
 def get_data(
     endpoint: str, params: dict | None = None, refresh: bool = False,
     *, cache_mode: str = "disk",
@@ -189,6 +210,9 @@ def get_data(
     _save_cache(cache, key, data, cache_mode)
     return data
 
+
+# [API] GET LIST
+# Paginação e transformação dos resultados
 
 def get_list(
     endpoint: str,

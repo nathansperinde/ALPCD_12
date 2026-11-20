@@ -1,5 +1,3 @@
-"""CLI para consulta de exercícios e criação de planos de treino."""
-
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any
@@ -9,10 +7,17 @@ import typer
 from fitlib import exercises, extras
 from fitlib.exercises import build_workout
 
+
+# [BASE] CONFIGURAÇÃO
+# Interface Typer e argumentos partilhados
+
 app = typer.Typer(help="Consulta de exercícios wger — ALPCD, Grupo 12.", no_args_is_help=True)
 PositiveInt = Annotated[int, typer.Argument(min=1)]
 Target = Annotated[str, typer.Argument(help="Músculo e/ou categoria.")]
 
+
+# [BASE] EXECUÇÃO
+# Apresentação de resultados e tratamento de erros
 
 def run_action(action: Callable[[], Any], *, as_json: bool = True, show_count: bool = False) -> None:
     try:
@@ -28,7 +33,9 @@ def run_action(action: Callable[[], Any], *, as_json: bool = True, show_count: b
         raise typer.Exit(code=1) from exc
 
 
-# [ALÍNEAS A–D] Os comandos validam a entrada e delegam em exercises.py.
+# [A] TOP
+# Exercícios mais recentes
+
 @app.command()
 def top(
     n: PositiveInt,
@@ -37,6 +44,9 @@ def top(
     """a) Mostrar os N exercícios mais recentes."""
     run_action(lambda: exercises.top_exercises(n, refresh=refresh))
 
+
+# [B] SEARCH
+# Pesquisa por músculo ou categoria
 
 @app.command()
 def search(
@@ -49,6 +59,9 @@ def search(
         raise typer.BadParameter("Indique um músculo ou uma categoria.", param_hint="target")
     run_action(lambda: exercises.search_exercises(target, n, refresh=refresh))
 
+
+# [C] TYPE
+# Classificação do esforço
 
 @app.command(name="type")
 def exercise_type(
@@ -66,6 +79,9 @@ def exercise_type(
         run_action(lambda: exercises.exercise_type(int(exercise_id)), as_json=False)
 
 
+# [D] EQUIPMENT
+# Frequência de equipamentos
+
 @app.command()
 def equipment(
     category: Annotated[
@@ -79,7 +95,9 @@ def equipment(
     run_action(lambda: exercises.equipment_frequency(category))
 
 
-# [EXTRAS DE CONSULTA] Pesquisa textual e comparação; independentes da conta.
+# [X1] FIND
+# Pesquisa textual de exercícios
+
 @app.command()
 def find(
     query: Annotated[str, typer.Argument(help="Texto a pesquisar.")],
@@ -93,6 +111,9 @@ def find(
     run_action(lambda: extras.find_exercises(query, limit, deep, show_description), show_count=True)
 
 
+# [X2] COMPARE
+# Comparação de exercícios
+
 @app.command()
 def compare(
     ids: Annotated[
@@ -104,7 +125,10 @@ def compare(
     run_action(lambda: extras.compare_exercises(ids))
 
 
-# [ALÍNEA E / EXPORTACAO CSV] Plano local; não usa os templates/rotinas do TCLI.
+# [E] WORKOUT
+# Criação de planos de treino
+# Plano local; não usa os templates/rotinas do TCLI.
+
 @app.command()
 def workout(
     targets: Annotated[str, typer.Argument(help="Alvos separados por vírgula.")],
@@ -132,6 +156,9 @@ def workout(
     run_action(action, as_json=csv_path is None)
 
 
+# [X3] DIFFICULTY
+# Estimativa de dificuldade
+
 @app.command()
 def difficulty(
     exercise_id: int = typer.Argument(..., min=1, help="ID do exercício."),
@@ -140,6 +167,9 @@ def difficulty(
     """Extra: estimar o nível de dificuldade de um exercício."""
     run_action(lambda: extras.exercise_difficulty(exercise_id, refresh=refresh))
 
+
+# [X4] INGREDIENT
+# Consulta de valores nutricionais
 
 @app.command()
 def ingredient(
