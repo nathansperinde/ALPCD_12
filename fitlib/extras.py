@@ -248,25 +248,17 @@ def level_from_score(score: int) -> str:
     return "avançado"
 
 
-def _exercise_name(exercise: dict) -> str:
-    """Nome em inglês; se não existir, o primeiro nome disponível."""
-    translations = exercise.get("translations") or []
-    for translation in translations:
-        if translation.get("language") == LANGUAGE and translation.get("name"):
-            return translation["name"]
-    for translation in translations:
-        if translation.get("name"):
-            return translation["name"]
-    return ""
-
-
 def exercise_difficulty(exercise_id: int, refresh: bool = False) -> dict[str, Any]:
     """Estimar a dificuldade do exercício com o ID dado (pede exerciseinfo/<id>/)."""
     if exercise_id <= 0:
         raise ValueError("O ID do exercício deve ser positivo.")
 
     exercise = api.get_data(f"exerciseinfo/{exercise_id}/", refresh=refresh)
-    name = _exercise_name(exercise)
+    
+    name = _name_in_english(exercise)
+    if name is None:
+        raise ValueError(f"Exercício {exercise_id} sem tradução inglesa.")
+
     n_muscles = len(exercise.get("muscles") or []) + len(exercise.get("muscles_secondary") or [])
     equipment = [e.get("name") for e in exercise.get("equipment") or []]
 
