@@ -13,7 +13,7 @@ LANGUAGE = 2
 
 
 def _name_in_english(exercise: dict) -> str | None:
-    for translation in exercise.get("translations", []):
+    for translation in exercise.get("translations") or []:
         if translation.get("language") == LANGUAGE and translation.get("name"):
             return translation["name"]
     return None
@@ -140,11 +140,7 @@ def classify_effort(exercise: dict) -> str:
 
     translations = exercise.get("translations") or []
 
-    name = ""
-    for t in translations:
-        if t.get("language") == LANGUAGE:
-            name = t.get("name") or ""
-            break
+    name = _name_in_english(exercise) or ""
 
     total_muscles = (
         len(exercise.get("muscles") or []) +

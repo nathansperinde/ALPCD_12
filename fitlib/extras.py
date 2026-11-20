@@ -2,7 +2,7 @@ import re
 from typing import Any
 
 from . import api
-from .exercises import LANGUAGE, _format, _name_in_english, classify_effort
+from .exercises import LANGUAGE, _format, _name_in_english, classify_effort, clean_description
 
 
 # [X1] FIND
@@ -71,7 +71,7 @@ def find_exercises(query: str, limit: int = 20, deep: bool = False, show_descrip
         description = ""
 
         if deep or show_description:
-            description = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", data["description"])).strip()
+            description = clean_description(data["description"])
 
         if deep:
             text = data["name"] + " " + description
