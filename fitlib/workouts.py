@@ -9,9 +9,8 @@ from . import api
 WORKOUTS_DIR = Path(__file__).resolve().parent.parent / "workouts"
 
 
-# ===========================================================================
-# [BASE LOCAL] VALIDAÇÃO, FICHEIROS E SELEÇÃO
-# ===========================================================================
+# [TCLI] TREINOS LOCAIS
+# Validação, ficheiros e seleção
 
 def exercise_name(exercise):
     """Nome em português (7), com inglês como alternativa."""
@@ -92,9 +91,9 @@ def filtered_exercises(equipment, muscles):
             found.append({"id": raw["id"], "name": name})
     return found
 
-# ===========================================================================
-# [PARTILHADO WGER] LEITURA DA ESTRUTURA E PERÍODOS
-# ===========================================================================
+
+# [TCLI] ROTINAS WGER
+# Leitura da estrutura e períodos
 
 def read_structure(ident, token):
     structure = api.request("GET", f"routine/{ident}/structure/", token)
@@ -135,10 +134,10 @@ def current_period(weekly=False):
     monday = date.today() - timedelta(days=date.today().weekday())
     return {"start": monday.isoformat(), "end": (monday + timedelta(days=83 if weekly else 6)).isoformat()}
 
-# ===========================================================================
-# [EXPORTACAO WGER] CRIAR TEMPLATE
+
+# [TCLI] TEMPLATES WGER
+# Criação e exportação
 # Também usado pela ativação, que cria uma cópia antes de substituir a rotina.
-# ===========================================================================
 
 def create_template(workout, token):
     validate_workout(workout)

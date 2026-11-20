@@ -7,10 +7,7 @@ from typing import Any
 from . import api
 
 
-# ===========================================================================
-# [BASE] IDIOMA E NORMALIZAÇÃO
-# Representação de exercício partilhada pelas alíneas e pelos extras.
-# ===========================================================================
+# [BASE] Normalização dos dados dos exercícios
 
 LANGUAGE = 2
 
@@ -48,9 +45,8 @@ def _format(exercise: dict) -> dict[str, Any] | None:
     }
 
 
-# ===========================================================================
-# [A/B] CONSULTA E PESQUISA POR MÚSCULO/CATEGORIA
-# ===========================================================================
+# [A] TOP
+# Exercícios mais recentes
 
 def top_exercises(limit: int, refresh: bool = False) -> list[dict[str, Any]]:
     """a) Obter até N exercícios recentes com tradução inglesa."""
@@ -63,6 +59,9 @@ def top_exercises(limit: int, refresh: bool = False) -> list[dict[str, Any]]:
     )
 
 
+# [SUPORTE B/D] 
+# Identificação de músculos e categorias
+
 def _matching_ids(items: list[dict], pattern: re.Pattern) -> list[int]:
     return [
         item["id"] for item in items
@@ -70,6 +69,9 @@ def _matching_ids(items: list[dict], pattern: re.Pattern) -> list[int]:
         or pattern.search(item.get("name") or "")
     ]
 
+
+# [B] SEARCH
+# Pesquisa por músculo ou categoria
 
 def search_exercises(target: str, limit: int, refresh: bool = False) -> list[dict[str, Any]]:
     """b) Pesquisar por músculo/categoria, sem repetir IDs entre filtros."""
@@ -112,10 +114,8 @@ def search_exercises(target: str, limit: int, refresh: bool = False) -> list[dic
     return results
 
 
-# ===========================================================================
-# [C] CLASSIFICAÇÃO DO ESFORÇO
-# Preservar as regras existentes: são reutilizadas pelo plano da alínea e).
-# ===========================================================================
+# [C] TYPE
+# Classificação do esforço
 
 COMPOUND_PATTERN = (
     r"\b(?:"
@@ -177,9 +177,8 @@ def exercise_type(exercise_id: int) -> str:
     return classify_effort(exercise)
 
 
-# ===========================================================================
-# [D] FREQUÊNCIA DE EQUIPAMENTO
-# ===========================================================================
+# [D] EQUIPMENT
+# Frequência de equipamentos
 
 def equipment_frequency(
     category: str
@@ -221,7 +220,9 @@ def equipment_frequency(
         descriptions
     )
 
-# PROCESSAMENTO DE DESCRIÇÕES
+
+# [D] EQUIPMENT
+# Padrões e processamento das descrições
 
 EQUIPMENT_PATTERNS = {
     "Barbell": re.compile(
@@ -318,9 +319,9 @@ def count_equipment(
     # A ordenação por frequência decrescente fica por implementar.
     return resultado
 
-# ===========================================================================
-# [E] PLANO POR ALVO E ESFORÇO
-# ===========================================================================
+
+# [E] WORKOUT
+# Criação de planos de treino
 
 def search_by_category(muscle: str, category: str, n: int) -> list[dict[str, Any]]:
     """Pesquisar mais candidatos até reunir N exercícios do esforço pedido."""
@@ -379,17 +380,16 @@ def build_workout(targets: str, effort: str, limit: int) -> dict[str, list[dict[
 
     return plano
 
-# ===========================================================================
-# [SAÍDA BASE] JSON
-# ===========================================================================
+
+# [BASE] Apresentação dos resultados em JSON
 
 def print_json(data: Any) -> None:
     """Imprimir JSON indentado, preservando acentos e terminando com newline."""
     print(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False))
 
-# ===========================================================================
-# [EXPORTACAO CSV] PLANO DA ALÍNEA E
-# ===========================================================================
+
+# [E] WORKOUT
+# Exportação dos planos para CSV
 
 CSV_FIELDS = ("target", "id", "name", "category", "equipment", "type")
 

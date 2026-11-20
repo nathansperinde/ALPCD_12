@@ -1,5 +1,3 @@
-"""Extras públicos: pesquisa textual, comparação, dificuldade e ingredientes."""
-
 import re
 from typing import Any
 
@@ -7,7 +5,8 @@ from . import api
 from .exercises import LANGUAGE, _format, _name_in_english, classify_effort
 
 
-# --- Pesquisa textual, comparação e pesquisa por tipo de esforço ---
+# [X1] FIND
+# Pesquisa textual de exercícios
 
 def word_pattern(word: str) -> re.Pattern:
     word = word.lower()
@@ -41,6 +40,7 @@ def word_pattern(word: str) -> re.Pattern:
         pattern = rf"{re.escape(base)}s?"
 
     return re.compile(rf"\b{pattern}\b", re.IGNORECASE)
+
 
 def find_exercises(query: str, limit: int = 20, deep: bool = False, show_description: bool = False, raw: bool = False) -> list[dict]:
 
@@ -96,6 +96,10 @@ def find_exercises(query: str, limit: int = 20, deep: bool = False, show_descrip
         transform=filter_exercise
     )
 
+
+# [X2] COMPARE
+# Comparação de exercícios
+
 def _compare_attribute(items: list[dict], field: str) -> dict:
     occurrences = {}
 
@@ -131,6 +135,7 @@ def _compare_attribute(items: list[dict], field: str) -> dict:
 
     return result
 
+
 def compare_exercises(ids: list[int]) -> dict:
     if len(ids) < 2:
         raise ValueError("Indique pelo menos dois exercícios.")
@@ -158,6 +163,10 @@ def compare_exercises(ids: list[int]) -> dict:
 
     return {"total_exercicios": len(items), "comparacao": comparison}
 
+
+# [SUPORTE C] TYPE
+# Pesquisa textual por tipo de esforço
+
 def search_exercise_types(query: str, limit: int = 20, deep: bool = False) -> list[dict]:
     found = find_exercises(query, limit, deep, raw=True)
     return [
@@ -170,22 +179,21 @@ def search_exercise_types(query: str, limit: int = 20, deep: bool = False) -> li
     ]
 
 
-# ---------------------------------------------------------------------------
-# Extra "difficulty": estimar o nível de um exercício
-# ---------------------------------------------------------------------------
+# [X3] DIFFICULTY
+# Estimativa de dificuldade
 
-# Palavras do nome que sugerem um exercício mais difícil (unilateral, explosivo...).
+# Palavras do nome que sugerem um exercício mais difícil
 ADVANCED_PATTERN = re.compile(
     r"\b(?:single[- ]?(?:leg|arm)|one[- ]?(?:leg|arm)|pistol|deficit|weighted|"
     r"snatch|clean|jerk|muscle[- ]?up|handstand|archer|plyo\w*|explosive)\b",
     re.IGNORECASE,
 )
-# Palavras que sugerem um exercício guiado/apoiado, mais fácil de executar.
+# Palavras que sugerem um exercício guiado/apoiado, mais fácil de executar
 BEGINNER_PATTERN = re.compile(
     r"\b(?:assisted|machine|seated|supported|wall|kneeling|stretch\w*)\b",
     re.IGNORECASE,
 )
-# Pesos livres difíceis de controlar.
+# Pesos livres difíceis de controlar
 HARD_EQUIPMENT = {"barbell", "kettlebell"}
 
 
@@ -272,9 +280,8 @@ def exercise_difficulty(exercise_id: int, refresh: bool = False) -> dict[str, An
     }
 
 
-# ---------------------------------------------------------------------------
-# Extra "ingredient": valores nutricionais (por 100 g, escalados para N gramas)
-# ---------------------------------------------------------------------------
+# [X4] INGREDIENT
+# Consulta de valores nutricionais
 
 PAGE_SIZE = 50  # pedimos uma só página; chega para filtrar e mostrar poucos resultados
 
