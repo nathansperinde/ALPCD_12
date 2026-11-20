@@ -311,12 +311,11 @@ def count_equipment(
 
     resultado = []
 
-    for equipment, quantidade in contagem.items():
+    for equipment, quantidade in sorted(contagem.items(), key=lambda item: item[1], reverse=True):
         resultado.append({
             equipment.lower(): quantidade
         })
-
-    # A ordenação por frequência decrescente fica por implementar.
+        
     return resultado
 
 
