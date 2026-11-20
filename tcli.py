@@ -3,24 +3,7 @@ import questionary
 import keyring
 
 from fitlib import api, exercises, extras, workouts
-
-
-# [TCLI] CONFIGURAÇÃO
-# Cabeçalhos e mensagens HTTP
-
-HEADERS = {
-    "User-Agent": "ALPCD-Grupo12/0.1",
-    "Accept": "application/json"
-}
-
-HTTP_ERRORS = {
-    400: "Bad request.",
-    401: "Authentication required.",
-    403: "Access forbidden.",
-    404: "Resource not found.",
-    408: "Request timeout.",
-    429: "Too many requests."
-}
+from fitlib.api import HEADERS, HTTP_ERRORS
 
 
 # [TCLI] AUTENTICAÇÃO
