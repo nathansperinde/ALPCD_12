@@ -138,8 +138,6 @@ ISOLATED_PATTERN = (
 def classify_effort(exercise: dict) -> str:
     category = (exercise.get("category") or {}).get("name", "").lower()
 
-    translations = exercise.get("translations") or []
-
     name = _name_in_english(exercise) or ""
 
     total_muscles = (
